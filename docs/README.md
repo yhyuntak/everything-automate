@@ -50,3 +50,5 @@ covers:
   M2 document connecting the v0 contracts into an actual outer flow and inner loop runtime sequence.
 - `docs/specs/everything-automate-provider-entry-bootstrap-mapping.md`
   M3 document defining provider-specific install surfaces, entry files, bootstrap mechanisms, and the shared intake boundary.
+- `docs/specs/everything-automate-resume-cancel-contract.md`
+  M4 contract for resumable runs, explicit cancellation semantics, terminal-reason separation, and artifact preservation.

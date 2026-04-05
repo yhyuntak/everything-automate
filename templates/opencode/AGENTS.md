@@ -34,4 +34,4 @@ The loop starts only after the first actionable request is classified.
 ## Current Status
 
 This file is a scaffold for the distributable OpenCode template.
-Concrete plugin wiring and runtime assets will be added later.
+Concrete plugin wiring and runtime assets will be added after the Claude Code and Codex baselines are stable.

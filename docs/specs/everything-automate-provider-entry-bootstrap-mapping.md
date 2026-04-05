@@ -121,12 +121,18 @@ direct | clarify | plan
 Primary targets:
 
 - Claude Code
+- Codex CLI
+
+Priority rule:
+
+- use Claude Code as the design center
+- keep asking how Codex can adapt without lowering the shared kernel
+- treat Codex limitations as adapter/overlay problems unless the shared contract itself is invalid
+
+Follow-up targets:
+
 - OpenCode
 - internal runtime (OpenCode-like)
-
-Secondary target:
-
-- Codex CLI
 
 이 우선순위는 설치/entry/bootstrap 설계를 정할 때도 그대로 적용한다.
 
@@ -135,9 +141,9 @@ Secondary target:
 | Provider | Install / Setup Surface | Runtime Entry Surface | Bootstrap Mechanism | Skill / Hook Discovery | Intake Trigger | M3 판단 |
 | --- | --- | --- | --- | --- | --- | --- |
 | Claude Code | plugin marketplace, local plugin install, setup command | `CLAUDE.md`, plugin metadata, hooks config | setup 이후 plugin + hook runtime이 세션 규칙과 skills를 활성화 | plugin-defined skills, hook files, Claude-native config | session start 후 첫 actionable request | first-class target |
-| OpenCode | `opencode.json` plugin 등록, project/global config, restart | plugin file, project `AGENTS.md` 또는 bootstrap text injection | plugin transform/config hook이 bootstrap text와 skill paths를 주입 | plugin config hook, skills path registration, native skill tool | session start 후 첫 actionable request | first-class target |
-| internal runtime | 사내 설치 방식에 맞는 plugin/config 등록 | OpenCode-like entry surface 또는 별도 internal entry doc | internal adapter가 OpenCode-compatible bootstrap을 우선 사용 | internal plugin loader 또는 shared skill discovery | session start 후 첫 actionable request | OpenCode-compatible 우선 |
-| Codex CLI | setup command, install docs, generated config | `AGENTS.md`, local skills, generated overlays | setup으로 생성된 guidance + skill/runtime overlays가 Codex session에 붙음 | skills directory, `AGENTS.md`, generated runtime markers | session start 후 첫 actionable request | compatibility target |
+| OpenCode | `opencode.json` plugin 등록, project/global config, restart | plugin file, project `AGENTS.md` 또는 bootstrap text injection | plugin transform/config hook이 bootstrap text와 skill paths를 주입 | plugin config hook, skills path registration, native skill tool | session start 후 첫 actionable request | follow-up target |
+| internal runtime | 사내 설치 방식에 맞는 plugin/config 등록 | OpenCode-like entry surface 또는 별도 internal entry doc | internal adapter가 OpenCode-compatible bootstrap을 우선 사용 | internal plugin loader 또는 shared skill discovery | session start 후 첫 actionable request | follow-up target |
+| Codex CLI | setup command, install docs, generated config | `AGENTS.md`, local skills, generated overlays | setup으로 생성된 guidance + skill/runtime overlays가 Codex session에 붙음 | skills directory, `AGENTS.md`, generated runtime markers | session start 후 첫 actionable request | first-class target |
 
 ## Provider별 해석
 
@@ -173,6 +179,7 @@ Secondary target:
 - OpenCode용 배포물은 plugin 중심이 자연스럽다.
 - bootstrap text injection과 skill path registration을 분리해서 본다.
 - OpenCode의 native skill surface와 충돌하지 않게 설계한다.
+- 다만 초기 구현 기준은 Claude/Codex에 두고, OpenCode는 그 다음 적응 레이어로 둔다.
 
 가져가지 않을 것:
 
@@ -183,7 +190,7 @@ Secondary target:
 현재 판단:
 
 - 사내 런타임은 OpenCode-like라고 가정한다.
-- 따라서 `v0`에서는 OpenCode adapter를 먼저 기준으로 삼고, internal overlay를 얹는 방식이 맞다.
+- 따라서 Claude/Codex 기준선이 선 뒤에 OpenCode adapter를 기반으로 internal overlay를 얹는 방식이 맞다.
 
 의미:
 
@@ -202,12 +209,13 @@ Secondary target:
 
 - Codex는 `AGENTS.md` 중심 guidance entry가 자연스럽다.
 - setup은 skill discovery와 runtime overlay 반영을 담당한다.
-- Codex는 primary target이 아니라 compatibility target로 둔다.
+- Codex는 Claude Code와 함께 초기 구현 기준선으로 둔다.
+- 다만 구현 기준선은 Claude Code 쪽에 더 가깝게 둔다.
 
 의미:
 
-- Codex 제약 때문에 공통 설계를 낮추지 않는다.
-- 가능한 곳만 맞추고, 부족한 capability는 degrade path로 둔다.
+- Claude Code와 최대한 비슷한 커널 의미를 유지하되, Codex 제약은 overlay와 degrade path로 처리한다.
+- Claude/OpenCode에서 가능한 표면이 Codex에 없더라도, 먼저 Claude 기준 의미를 유지하고 Codex 대체 경로를 찾는다.
 
 ## Template Source-of-Truth 초안
 

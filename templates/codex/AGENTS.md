@@ -4,7 +4,7 @@ This file is the top-level runtime guidance entry for the Codex template.
 
 ## Positioning
 
-Codex CLI is a compatibility target, not the primary design center.
+Codex CLI is one of the two initial implementation baselines together with Claude Code.
 Do not lower the shared kernel design just to fit Codex-specific limits.
 
 ## Runtime Model
@@ -34,4 +34,4 @@ plan -> execute -> verify -> decide
 ## Current Status
 
 This file is an initial scaffold for the Codex template.
-Compatibility gaps should be handled with overlays and degrade paths rather than by weakening the common kernel.
+Codex-specific gaps should be handled with overlays and degrade paths rather than by weakening the common kernel.

@@ -31,4 +31,4 @@ session start
 ## Current Status
 
 This file is a draft source-of-truth entry.
-It will stay thin until the internal runtime differences are explicit enough to justify a dedicated adapter.
+It will stay thin until the Claude Code and Codex baselines are stable and the internal runtime differences are explicit enough to justify a dedicated adapter.
