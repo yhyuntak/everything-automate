@@ -30,8 +30,10 @@ covers:
 v0 kernel contracts
   -> execution flow
   -> minimal bootstrap/intake
-  -> resume/cancel hardening
-  -> adapters
+  -> Codex in-session workflow
+  -> Codex runtime and recovery
+  -> Claude adaptation
+  -> wider adapters
   -> later expansion
 ```
 
@@ -110,41 +112,78 @@ v0 kernel contracts
 - 런타임이 어떤 계약을 사용할지 최소한으로 결정할 수 있다.
 - 로컬 개발용 규칙과 배포용 진입 파일이 서로 역할을 침범하지 않는다.
 
-### M4. resume / cancel 하드닝
+### M4. Codex 인세션 workflow와 handoff
 
-목적: 중단과 복귀가 안전하게 반복되도록 만든다.
+목적: Codex 사용자가 세션 안에서 밟는 canonical workflow를 먼저 고정한다.
 
-이 단계에서 강화할 것:
+이 단계에서 구현할 것:
 
-- 중단 후 재개 규칙
-- 부분 진행 상태 복원
-- `cancel`의 범위와 정리 규칙
-- 완료되지 않은 evidence와 산출물의 보존 여부
+- `$deep-interview`, `$ralplan`, `$ralph`, `$cancel` 같은 primary surface 정의
+- planning에서 execution으로 넘어가는 handoff contract
+- plan artifact에서 execution intent를 읽는 방식
+- 인세션 workflow와 shared kernel의 연결 규칙
 
 완료 조건:
 
-- 중단된 작업이 같은 계약으로 다시 이어진다.
-- 취소가 암묵적인 실패가 아니라 명시적 종료로 기록된다.
-- 재개와 취소가 서로 충돌하지 않는다.
-- 초기 구현과 검증 기준은 Claude Code에 둔다.
+- Codex의 1차 사용자 경험이 인세션 workflow로 설명된다.
+- approved plan이 execution handoff로 자연스럽게 이어진다.
+- `$ralph`와 `$cancel`이 어떤 의미를 가지는지 contract로 분명하다.
+- 바깥 runtime은 메인 UX가 아니라 내부 구현 레이어로 위치가 정리된다.
 
-### M5. 어댑터 도입
+### M5. Codex runtime과 recovery path
 
-목적: 커널을 고정한 뒤 주변 런타임을 붙인다.
+목적: `M4`에서 정한 인세션 workflow를 실제 state/runtime으로 받쳐준다.
+
+이 단계에서 다룰 것:
+
+- internal launcher/runtime glue
+- handoff artifact 소비 방식
+- session-scoped instructions 준비
+- `runtime/ea_state.py`와 Codex runtime 연결
+- Codex 기준 status / cancel / resume recovery
+
+완료 조건:
+
+- 인세션 workflow가 internal runtime과 연결된다.
+- `cancelled`와 `failed`가 Codex path에서도 분리된다.
+- resume / cancel이 file-based state 계약과 충돌하지 않는다.
+- runtime primitive가 UX 레이어를 대체하지 않는다.
+
+### M6. Claude adaptation
+
+목적: Codex에서 먼저 굳힌 shared semantics를 Claude richer surface에 맞게 연결한다.
+
+이 단계에서 다룰 것:
+
+- Claude hook / subagent surface 재검토
+- task metadata 전달 방식 확정
+- Claude template와 shared runtime state 연결
+- Codex와 다른 Claude lifecycle advantage를 별도 표면으로 격리
+
+완료 조건:
+
+- Claude path가 shared kernel 의미를 유지한 채 richer surface를 사용한다.
+- Claude 전용 편의 기능이 core state 계약을 바꾸지 않는다.
+- pause된 Claude 탐색이 실제 adapter 설계로 연결된다.
+
+### M7. wider adapters
+
+목적: Claude와 Codex 이후 다른 provider를 붙인다.
 
 이 단계에서 추가할 것:
 
-- provider adapter
-- tool mapping overlay
+- OpenCode adapter
+- internal runtime adapter
 - provider별 bootstrap 차이
+- tool mapping overlay
 
 완료 조건:
 
-- 어댑터가 핵심 계약을 바꾸지 않는다.
-- provider 차이는 커널 밖으로 분리된다.
-- 새 provider를 붙여도 상태 모델은 유지된다.
+- 새 provider가 붙어도 shared kernel 의미는 유지된다.
+- provider 차이는 adapter 경계 바깥에 머문다.
+- Codex와 Claude에서 정한 공통 상태 계약이 재사용된다.
 
-### M6. later expansion
+### M8. later expansion
 
 목적: 안정화된 커널 위에 확장 기능을 순차적으로 올린다.
 
@@ -167,9 +206,11 @@ v0 kernel contracts
 M1 계약 고정
   -> M2 실행 흐름
   -> M3 최소 bootstrap/intake
-  -> M4 resume/cancel 하드닝
-  -> M5 어댑터
-  -> M6 later expansion
+  -> M4 Codex 인세션 workflow와 handoff
+  -> M5 Codex runtime과 recovery path
+  -> M6 Claude adaptation
+  -> M7 wider adapters
+  -> M8 later expansion
 ```
 
 이 순서를 바꾸지 않는다.
@@ -184,10 +225,14 @@ M1 계약 고정
 - `M3`
   최소 진입점, 작업 분류 규칙, 실행 의도 기록, 템플릿 진입 규칙
 - `M4`
-  재개 규칙, 취소 규칙, 복구 가능 상태 정의
+  Codex in-session workflow, handoff contract, execution intent 규칙
 - `M5`
-  provider adapter, tool mapping, bootstrap overlay
+  Codex internal runtime glue, recovery path, state 연결
 - `M6`
+  Claude hook/subagent adaptation, task metadata path, template 연결
+- `M7`
+  OpenCode/internal adapters, provider bootstrap overlay
+- `M8`
   확장 기능 선택지와 활성화 조건
 
 ## 구현 판단
@@ -199,6 +244,8 @@ M1 계약 고정
 1. 상태 계약을 고정한다.
 2. 실행 흐름을 연결한다.
 3. 최소 진입점을 만든다.
-4. 재개와 취소를 단단하게 만든다.
-5. 그 다음에 어댑터를 붙인다.
-6. 마지막에 확장을 넓힌다.
+4. Codex 인세션 workflow를 먼저 굳힌다.
+5. 그 workflow를 받쳐주는 runtime과 recovery를 붙인다.
+6. 그 다음 Claude adaptation을 붙인다.
+7. 이후 다른 provider adapter를 붙인다.
+8. 마지막에 확장을 넓힌다.

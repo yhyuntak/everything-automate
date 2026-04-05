@@ -4,6 +4,10 @@ __pycache__/
 
 # Local Codex state
 .codex/state/
+.codex/skills/
+.codex/agents/
+.codex/testing/
+.everything-automate/
 
 # Cloned external references are working material, not source-of-truth
 references/

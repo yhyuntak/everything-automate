@@ -4,27 +4,29 @@ This file is the top-level runtime guidance entry for the Codex template.
 
 ## Positioning
 
-Codex CLI is a follow-up adaptation target after the Claude Code baseline is stable.
-Do not lower the shared kernel design just to fit Codex-specific limits.
+Codex CLI is the current `v0` implementation path.
+The primary user workflow should stay inside the Codex session.
+Runtime helpers and state tools exist to support that workflow, not replace it.
 
 ## Runtime Model
 
 ```text
-session start
-  -> guidance and overlay bootstrap
-  -> wait for actionable request
-  -> intake
-  -> direct | clarify | plan
-  -> execute
-  -> verify
-  -> decide
-  -> wrap
+inside Codex
+  -> $planning
+
+under the hood
+  -> handoff
+  -> state/runtime preparation
+  -> execution/recovery support
 ```
 
 ## Core Expectations
 
 - `AGENTS.md` is the top-level operating contract
 - setup installs or generates the runtime overlays Codex needs
+- in-session workflow is the primary UX
+- durable execution is not assumed to be native to Codex
+- runtime helpers are internal support surfaces for state, instructions, and recovery
 - the shared kernel remains:
 
 ```text
@@ -33,5 +35,25 @@ plan -> execute -> verify -> decide
 
 ## Current Status
 
-This file is an initial scaffold for the Codex template.
-Codex-specific gaps should be handled later with overlays and degrade paths rather than by weakening the common kernel early.
+Primary in-session workflow surface:
+
+- `$planning`
+
+Current internal support surface in this source repo:
+
+- `templates/codex/overlays/ea-codex.sh`
+
+This helper is not the intended primary user workflow.
+Installed packaging may later hide or replace it behind in-session skill wiring.
+
+Current planning-agent roster:
+
+- `explorer`
+- `angel`
+- `architect`
+- `devil`
+
+Current note:
+
+- Only `$planning` is currently installed as an active Codex workflow skill.
+- Interview and Ralph execution concepts are still under design and should not be treated as installed user-facing skills yet.

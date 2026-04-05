@@ -118,21 +118,25 @@ direct | clarify | plan
 
 ## 우선순위 대상
 
-Current implementation baseline:
+의미 reference:
 
 - Claude Code
 
-Priority rule:
+현재 구현 순서:
 
-- use Claude Code as the design center
-- do not block Claude-first implementation on Codex constraints
-- keep Codex adaptation in mind without lowering the shared kernel early
+- Codex CLI
 
 Follow-up targets:
 
-- Codex CLI
+- Claude Code adaptation
 - OpenCode
 - internal runtime (OpenCode-like)
+
+현재 우선순위 규칙은 다음과 같다.
+
+- shared kernel 의미는 Claude에서 배운 richer lifecycle을 참고한다
+- 하지만 실제 `v0` 구현은 Codex에서 먼저 굴러가야 한다
+- Codex 제약을 숨기지 않고, provider-specific execution model로 정직하게 분리한다
 
 이 우선순위는 설치/entry/bootstrap 설계를 정할 때도 그대로 적용한다.
 
@@ -140,10 +144,10 @@ Follow-up targets:
 
 | Provider | Install / Setup Surface | Runtime Entry Surface | Bootstrap Mechanism | Skill / Hook Discovery | Intake Trigger | M3 판단 |
 | --- | --- | --- | --- | --- | --- | --- |
-| Claude Code | plugin marketplace, local plugin install, setup command | `CLAUDE.md`, plugin metadata, hooks config | setup 이후 plugin + hook runtime이 세션 규칙과 skills를 활성화 | plugin-defined skills, hook files, Claude-native config | session start 후 첫 actionable request | current implementation baseline |
+| Claude Code | plugin marketplace, local plugin install, setup command | `CLAUDE.md`, plugin metadata, hooks config | setup 이후 plugin + hook runtime이 세션 규칙과 skills를 활성화 | plugin-defined skills, hook files, Claude-native config | session start 후 첫 actionable request | semantic reference, later adaptation |
 | OpenCode | `opencode.json` plugin 등록, project/global config, restart | plugin file, project `AGENTS.md` 또는 bootstrap text injection | plugin transform/config hook이 bootstrap text와 skill paths를 주입 | plugin config hook, skills path registration, native skill tool | session start 후 첫 actionable request | follow-up target |
 | internal runtime | 사내 설치 방식에 맞는 plugin/config 등록 | OpenCode-like entry surface 또는 별도 internal entry doc | internal adapter가 OpenCode-compatible bootstrap을 우선 사용 | internal plugin loader 또는 shared skill discovery | session start 후 첫 actionable request | follow-up target |
-| Codex CLI | setup command, install docs, generated config | `AGENTS.md`, local skills, generated overlays | setup으로 생성된 guidance + skill/runtime overlays가 Codex session에 붙음 | skills directory, `AGENTS.md`, generated runtime markers | session start 후 첫 actionable request | follow-up adaptation target |
+| Codex CLI | setup command, install docs, generated config | `AGENTS.md`, in-session skills, internal runtime support | setup과 runtime support가 인세션 workflow에 필요한 guidance/state를 준비 | skills directory, `AGENTS.md`, generated runtime markers, internal runtime glue | session 안에서 `$deep-interview`, `$ralplan`, `$ralph`, `$cancel` 같은 workflow surface 사용 | current implementation path |
 
 ## Provider별 해석
 
@@ -208,13 +212,15 @@ Follow-up targets:
 `everything-automate`가 가져갈 핵심:
 
 - Codex는 `AGENTS.md` 중심 guidance entry가 자연스럽다.
-- setup은 skill discovery와 runtime overlay 반영을 담당한다.
-- Codex는 Claude Code 구현이 선 뒤에 적응시켜야 할 후속 target로 둔다.
+- Codex에서는 인세션 workflow가 사용자 1차 표면이어야 한다.
+- `deep-interview`, `ralplan`, `ralph`, `cancel` 같은 surface가 세션 안에서 보이는 것이 자연스럽다.
+- setup은 skill discovery와 internal runtime glue 반영을 담당한다.
 
 의미:
 
-- Claude Code와 최대한 비슷한 커널 의미를 유지하되, Codex 제약은 뒤에서 overlay와 degrade path로 처리한다.
-- Claude/OpenCode에서 가능한 표면이 Codex에 없더라도, 먼저 Claude 기준 의미를 구현하고 나중에 Codex 대체 경로를 찾는다.
+- Codex 쪽은 `inside workflow first, runtime support underneath` 모델을 기본으로 둔다.
+- `AGENTS.md`만으로 lifecycle을 해결하지 않고, state tool과 runtime 보조층을 같이 사용한다.
+- Claude 의미는 reference로 유지하되, 구현 순서는 Codex 운영 모델을 먼저 굳힌다.
 
 ## Template Source-of-Truth 초안
 
@@ -346,6 +352,16 @@ provider마다 top-level guidance entry가 하나는 있어야 한다.
 - provider별 top-level entry file 초안 생성
 - minimal bootstrap assets 생성
 - minimal intake 기록 방식 생성
+
+현재 구현 순서 기준으로는, 여기서 바로 이어지는 concrete path는 다음과 같다.
+
+```text
+Codex in-session workflow
+  -> approved plan
+  -> execution handoff
+  -> internal runtime preparation
+  -> durable loop support
+```
 
 즉 `M3`는 마지막 순수 설계 단계라기보다,
 실제 template 구현 직전의 연결 단계다.

@@ -1,0 +1,29 @@
+{
+  "description": "Everything Automate Claude Code hooks for M4 state init and suspend",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ./templates/claude-code/hooks/scripts/session-start-init.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ./templates/claude-code/hooks/scripts/stop-suspend.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

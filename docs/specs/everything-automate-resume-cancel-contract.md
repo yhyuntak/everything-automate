@@ -33,11 +33,19 @@ covers:
 
 ## 현재 구현 기준
 
-`M4`의 첫 구현 기준선은 Claude Code다.
+`M4`의 공통 계약은 provider-neutral하게 유지한다.
 
-Codex CLI, OpenCode, internal runtime은 후속 적응 레이어로 본다.
-즉 `M4`의 공통 계약은 provider-neutral하게 쓰되, 초기 검증과 첫 구현은 Claude Code에 둔다.
-Codex는 그 의미를 최대한 보존하는 제약 적응 대상으로 뒤에서 붙인다.
+Claude Code는 richer reference surface를 제공하지만,
+현재 작업 환경과 구현 속도를 고려하면 실제 구현 순서는 Codex 쪽을 먼저 보는 것이 더 현실적이다.
+
+따라서 현재 문서는:
+
+- 상태 의미는 provider-neutral하게 유지
+- Claude 탐색 결과는 문서로 보존
+- 실제 다음 구현은 Codex path를 먼저 본다
+- Codex에서는 인세션 workflow를 1차 UX로 두고, runtime support 레이어가 그 아래를 받친다
+
+라는 전제를 둔다.
 
 ## 범위
 
@@ -257,12 +265,13 @@ loop exhausted or unrecoverable
 
 ### Codex CLI
 
-- `AGENTS.md`와 runtime overlays 중심으로 연결될 가능성이 높다
+- `AGENTS.md`와 인세션 workflow surface가 중심이 된다
 - resume는 local state 파일과 plan/evidence 파일을 읽는 방식이 자연스럽다
 - Claude처럼 풍부한 hook surface를 전제하지 않는다
-- 따라서 현재 단계에서는 설계 메모만 유지하고, 구현은 뒤로 미룬다
+- runtime helper는 상태와 recovery를 받치는 내부 레이어로 두는 편이 자연스럽다
 
-이 차이 때문에 `M4`는 Claude 구현을 먼저 굳히고, Codex는 나중에 적응시키는 순서가 맞다.
+이 차이 때문에 현재는 Codex 인세션 workflow를 먼저 고정하고,
+그 다음 단계에서 recovery/runtime 보조층을 붙이는 순서가 맞다.
 
 ## M4 산출물
 

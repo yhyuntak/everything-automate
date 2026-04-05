@@ -35,6 +35,7 @@ covers:
 - 이 문서는 설치된 결과물이 **타깃 런타임 안에서** 어떻게 동작하는지 설명한다.
 - `everything-automate` authoring repo가 직접 세션에 읽히는 모델을 전제로 하지 않는다.
 - 실제 동작은 나중에 `templates/`를 통해 배포된 산출물이 각 provider 환경에 설치된 뒤 시작된다.
+- provider별 realization은 다를 수 있다. 현재 `v0` 구현 경로에서는 Codex가 인세션 workflow를 1차 UX로 두고, 그 아래에 runtime support 레이어를 두는 모델을 사용한다.
 
 ## 큰 구조
 
@@ -204,6 +205,30 @@ install/setup session
 - `bootstrap`은 install/setup session이 아니라 runtime session에서 일어난다.
 - install/setup은 provider별로 다를 수 있다.
 - bootstrap 이후의 공통 흐름은 최대한 provider와 무관하게 맞춘다.
+
+## 현재 Codex realization
+
+현재 `v0` 구현 순서에서는 Codex를 다음처럼 현실화한다.
+
+```text
+inside Codex
+  -> workflow surfaces
+  -> approved plan
+  -> task handoff
+
+under the hood
+  -> runtime preparation
+  -> execute
+  -> verify
+  -> decide
+  -> wrap
+```
+
+중요:
+
+- 이 분리는 커널 의미를 바꾸는 것이 아니다.
+- Codex에서 인세션 workflow와 runtime support를 나누는 provider-specific realization이다.
+- 현재 `M4`는 이 Codex realization의 in-session workflow와 handoff를 먼저 고정하는 단계다.
 
 ## 단계별 흐름
 

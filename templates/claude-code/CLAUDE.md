@@ -41,8 +41,14 @@ plan -> execute -> verify -> decide
 - `CLAUDE.md` is the top-level guidance entry
 - hooks and plugin assets perform runtime bootstrap after installation
 - the first actionable request triggers intake classification
+- `SessionStart` and `Stop` hooks are the first concrete M4 surfaces for state init and suspend
 
 ## Current Status
 
-This template is an initial source-of-truth scaffold.
-Provider-specific hooks, setup scripts, and runtime assets will be added incrementally.
+This template now includes an initial M4 hookup:
+
+- `SessionStart` can initialize task-scoped loop state
+- `Stop` can suspend the current task conservatively
+- explicit helper scripts handle cancel and resume-check
+
+Provider-specific runtime assets will continue to grow incrementally.
