@@ -5,6 +5,9 @@ This document tracks the current Codex install shape.
 ## Intended Install Shape
 
 ```text
+python3 scripts/install_global.py setup --provider codex
+  -> ~/.codex/*
+
 start Codex session
   -> use in-session workflow skills
   -> handoff execution intent internally
@@ -17,6 +20,7 @@ start Codex session
 - in-session workflow guidance
 - planning agent prompts under `templates/codex/agents/`
 - workflow skills under `templates/codex/skills/`
+- global installer: `scripts/install_global.py`
 - runtime state tool: `runtime/ea_state.py`
 - Codex runtime helper: `runtime/ea_codex.py`
 - authoring-time wrapper: `templates/codex/overlays/ea-codex.sh`
@@ -39,6 +43,8 @@ For local testing inside this repository:
 Current helper scripts:
 
 - `python3 scripts/install_codex_local_test.py`
+- `python3 scripts/install_global.py setup --provider codex --codex-home <tmp-dir>`
+- `python3 scripts/install_global.py doctor --provider codex --codex-home <tmp-dir>`
 - `bash scripts/test_codex_planning.sh [slug]`
 
 Note:
@@ -61,9 +67,25 @@ After setup, the Codex path should:
 - let approved plans hand off into `$execute` cleanly
 - keep state and recovery underneath the UX
 - support `status`, `cancel`, and `resume` without forcing the user into a wrapper-first workflow
+- back up replaced global assets before overwriting them
+- expose a minimal `doctor` surface for managed assets
 
 ## Status
 
 This is now a partial implementation guide.
 The current runtime helper exists, and the active user-facing Codex workflow skills right now are `$brainstorming`, `$planning`, and `$execute`.
-Other workflow surfaces should be added only after their contracts are explicitly agreed.
+The current global setup v0 is:
+
+- `setup`
+  - materialize `~/.codex/AGENTS.md`
+  - materialize `~/.codex/agents/*.toml`
+  - materialize `~/.codex/skills/{brainstorming,planning,execute}/`
+  - write a managed install manifest under `~/.codex/everything-automate/`
+  - back up replaced assets under `~/.codex/backups/<timestamp>/`
+- `doctor`
+  - report managed install root
+  - report found and missing managed assets
+  - report latest manifest path and status
+
+`~/.codex/config.toml` is intentionally excluded from v0.
+Other workflow surfaces and provider adapters should be added only after their contracts are explicitly agreed.
