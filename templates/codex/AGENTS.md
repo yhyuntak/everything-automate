@@ -14,6 +14,7 @@ Runtime helpers and state tools exist to support that workflow, not replace it.
 inside Codex
   -> $brainstorming
   -> $planning
+  -> $execute
 
 under the hood
   -> handoff
@@ -40,6 +41,7 @@ Primary in-session workflow surface:
 
 - `$brainstorming`
 - `$planning`
+- `$execute`
 
 Current internal support surface in this source repo:
 
@@ -59,4 +61,5 @@ Current note:
 
 - `$brainstorming` is the idea-shaping surface before planning.
 - `$planning` is the execution-planning surface after direction is clear enough.
-- Ralph execution concepts are still under design and should not be treated as installed user-facing skills yet.
+- `$execute` is the C-lite execution surface after an approved planning handoff.
+- Ralph execution concepts still inform the contract, but are not installed as separate user-facing skills.
