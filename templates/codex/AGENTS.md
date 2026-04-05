@@ -12,6 +12,7 @@ Runtime helpers and state tools exist to support that workflow, not replace it.
 
 ```text
 inside Codex
+  -> $brainstorming
   -> $planning
 
 under the hood
@@ -37,6 +38,7 @@ plan -> execute -> verify -> decide
 
 Primary in-session workflow surface:
 
+- `$brainstorming`
 - `$planning`
 
 Current internal support surface in this source repo:
@@ -55,5 +57,6 @@ Current planning-agent roster:
 
 Current note:
 
-- Only `$planning` is currently installed as an active Codex workflow skill.
-- Interview and Ralph execution concepts are still under design and should not be treated as installed user-facing skills yet.
+- `$brainstorming` is the idea-shaping surface before planning.
+- `$planning` is the execution-planning surface after direction is clear enough.
+- Ralph execution concepts are still under design and should not be treated as installed user-facing skills yet.

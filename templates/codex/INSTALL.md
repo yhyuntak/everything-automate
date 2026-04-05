@@ -23,6 +23,7 @@ start Codex session
 
 ## Current Workflow Shape
 
+- `$brainstorming`
 - `$planning`
 
 ## Local Repo Test Path
@@ -55,7 +56,7 @@ templates/codex/overlays/ea-codex.sh ...
 
 After setup, the Codex path should:
 
-- make `$planning` the first active in-session workflow surface
+- make `$brainstorming` and `$planning` the active in-session workflow surfaces
 - let approved plans hand off into execution cleanly
 - keep state and recovery underneath the UX
 - support `status`, `cancel`, and `resume` without forcing the user into a wrapper-first workflow
@@ -63,5 +64,5 @@ After setup, the Codex path should:
 ## Status
 
 This is now a partial implementation guide.
-The current runtime helper exists, but the only active user-facing Codex workflow skill right now is `$planning`.
+The current runtime helper exists, and the active user-facing Codex workflow skills right now are `$brainstorming` and `$planning`.
 Other workflow surfaces should be added only after their contracts are explicitly agreed.
