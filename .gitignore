@@ -1,0 +1,7 @@
+.DS_Store
+
+# Local Codex state
+.codex/state/
+
+# Cloned external references are working material, not source-of-truth
+references/
