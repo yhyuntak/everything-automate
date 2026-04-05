@@ -33,14 +33,11 @@ covers:
 
 ## 현재 구현 기준
 
-`M4`의 첫 구현 기준선은 다음 두 환경이다.
+`M4`의 첫 구현 기준선은 Claude Code다.
 
-- Claude Code
-- Codex CLI
-
-OpenCode와 internal runtime은 후속 적응 레이어로 본다.
-즉 `M4`의 공통 계약은 provider-neutral하게 쓰되, 초기 검증 기준은 Claude/Codex에 둔다.
-더 구체적으로는 Claude Code를 설계 중심으로 두고, Codex는 그 의미를 최대한 보존하는 제약 적응 대상으로 본다.
+Codex CLI, OpenCode, internal runtime은 후속 적응 레이어로 본다.
+즉 `M4`의 공통 계약은 provider-neutral하게 쓰되, 초기 검증과 첫 구현은 Claude Code에 둔다.
+Codex는 그 의미를 최대한 보존하는 제약 적응 대상으로 뒤에서 붙인다.
 
 ## 범위
 
@@ -250,7 +247,7 @@ loop exhausted or unrecoverable
 - `resume`은 상태
 - `cancelled`와 `failed`는 terminal outcome
 
-## Claude/Codex 기준선 해석
+## Claude 기준선과 Codex 적응 메모
 
 ### Claude Code
 
@@ -260,11 +257,12 @@ loop exhausted or unrecoverable
 
 ### Codex CLI
 
-- `AGENTS.md`와 runtime overlays 중심으로 연결된다
+- `AGENTS.md`와 runtime overlays 중심으로 연결될 가능성이 높다
 - resume는 local state 파일과 plan/evidence 파일을 읽는 방식이 자연스럽다
 - Claude처럼 풍부한 hook surface를 전제하지 않는다
+- 따라서 현재 단계에서는 설계 메모만 유지하고, 구현은 뒤로 미룬다
 
-이 차이 때문에 `M4`는 provider-specific 구현보다 공통 계약을 먼저 고정해야 한다.
+이 차이 때문에 `M4`는 Claude 구현을 먼저 굳히고, Codex는 나중에 적응시키는 순서가 맞다.
 
 ## M4 산출물
 

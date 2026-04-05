@@ -109,9 +109,9 @@ The working design is:
 
 - inner kernel: `plan -> execute -> verify -> decide`
 - outer runtime flow: `bootstrap -> intake -> plan -> commit -> execute -> verify -> decide -> wrap`
-- initial provider baseline: `Claude Code + Codex`
+- initial implementation baseline: `Claude Code`
 - design center: `Claude Code`
-- Codex should be treated as a constrained adaptation target, not as the feature ceiling
+- Codex should be treated as a constrained follow-up adaptation target, not as the feature ceiling
 - `OpenCode` and internal runtimes are follow-up targets unless a concrete need pulls them forward
 
 The current priority is to define the reusable loop kernel, not to fully flesh out every runtime surface.
