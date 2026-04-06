@@ -1,177 +1,48 @@
-# Everything Automate Local Working Rules
+# Repository Guidelines
 
-## Purpose
+## Project Structure & Module Organization
 
-This `AGENTS.md` is the local operating contract for building `everything-automate`.
-It exists so the session does not have to reconstruct the project's working rules every time.
+- `templates/`: source of truth for distributable runtime assets. Codex lives under `templates/codex/`.
+- `scripts/`: setup and install helpers such as `install_global.py` and local test installers.
+- `runtime/`: shared runtime helpers and state tools, including `ea_state.py` and `ea_codex.py`.
+- `docs/`: research notes, specs, milestones, and design decisions. Start with `docs/README.md`.
+- `references/`: external reference projects used for research only. Do not treat them as editable source.
+- `.everything-automate/`: local working artifacts such as generated plans and state.
 
-This file is for the **local authoring layer**.
-It is not the distributable template itself.
+## Build, Test, and Development Commands
 
-## Core Model
+- `python3 scripts/install_global.py setup --provider codex`
+  Install the current Codex template into `~/.codex`.
+- `python3 scripts/install_global.py doctor --provider codex`
+  Check whether managed global assets are installed and readable.
+- `python3 scripts/install_codex_local_test.py`
+  Materialize repo-local Codex skills and agents for local testing.
+- `python3 -m py_compile scripts/install_global.py scripts/install_common.py runtime/ea_state.py runtime/ea_codex.py`
+  Fast syntax check for the current Python entry points.
+- `git status --short`
+  Confirm intended file scope before commit.
 
-`everything-automate` has two layers that must stay separate.
+## Coding Style & Naming Conventions
 
-### 1. Local authoring layer
+- Use ASCII by default.
+- Prefer short, plain English. Write for non-native English speakers.
+- Python: follow standard style, 4-space indentation, clear function names, no clever abstractions.
+- Markdown: keep sections short, use stable headings, and update related indexes when adding docs.
+- Template assets should live under `templates/`; repo-local helpers should not become the only shipped behavior.
 
-This repository is used to:
+## Testing Guidelines
 
-- research reference harnesses
-- design the common loop kernel
-- write and test local helper skills/workflows
-- generate and package distributable templates
+- There is no formal test suite yet; use targeted verification.
+- For Python changes, run `py_compile`.
+- For installer changes, run both `setup` and `doctor` against a temp root before touching `~/.codex`.
+- For docs and skills, re-read the rendered flow and check linked indexes such as `docs/README.md`.
 
-Local operating rules belong here, in this root `AGENTS.md`.
+## Commit & Pull Request Guidelines
 
-### 2. Distributable template layer
-
-Files intended for external installation or project embedding must live under `templates/` as the source of truth.
-
-That includes future:
-
-- `templates/*/AGENTS.md`
-- `templates/*/CLAUDE.md`
-- distributable skills
-- distributable hooks
-- distributable commands
-- provider-specific bootstrap files
-
-Do not let repo-local convenience files become the accidental source of truth for distributable behavior.
-
-## Non-Negotiable Rules
-
-### Documents must be durable
-
-Every important document must be understandable later by someone who did not participate in the original discussion.
-
-Write so that:
-
-- the reader can understand the context without hidden background
-- the reason for a decision is visible
-- the current status vs future intent is distinguishable
-- the next action is obvious
-
-Do not write documents as short-lived conversation residue.
-
-### Use simple English in user-facing writing
-
-When writing skills, harness prompts, setup text, runtime assets, or direct explanations in English:
-
-- prefer simple, common English words
-- write so a non-native English speaker can follow it quickly
-- avoid abstract framework words when a plain verb or noun will do
-- prefer direct instructions over clever wording
-- keep important terms stable, but explain them in simple language around them
-- use the same rule when speaking to the user in English, not only when writing template files
-
-The default target is readability for someone who is not fluent in English.
-If a middle-school-level reader cannot follow it, the wording is too hard.
-
-### Templates own distributable behavior
-
-If a behavior is meant to ship to users, it should be authored in the template layer.
-
-Local files may:
-
-- describe it
-- test it
-- generate it
-- package it
-
-But local files should not silently become the only implementation of distributable runtime behavior.
-
-### Local rules still belong in local AGENTS
-
-This root `AGENTS.md` must contain the local working rules for evolving the project itself.
-That guidance should not depend on reading `docs/` first.
-
-`docs/` may explain and expand the rules.
-This file should keep the always-relevant operating contract short and actionable.
-
-### Kernel before adapters
-
-Default build order:
-
-1. loop kernel contracts
-2. execution flow
-3. minimal bootstrap/intake
-4. resume/cancel hardening
-5. provider adapters
-6. broader expansion
-
-Do not jump to provider-specific polish before the shared kernel is stable.
-
-### Planning discipline is preserved
-
-Keep the best parts of `claude-automate`:
-
-- explicit planning
-- AC-driven implementation
-- verification discipline
-- wrap-up discipline
-
-But do not carry over weak runtime patterns unchanged:
-
-- single-string mode state
-- implicit continuation
-- no explicit cancel contract
-- no shared loop-state kernel
-
-## Current Project Direction
-
-The working design is:
-
-- inner kernel: `plan -> execute -> verify -> decide`
-- outer runtime flow: `bootstrap -> intake -> plan -> commit -> execute -> verify -> decide -> wrap`
-- initial implementation baseline: `Claude Code`
-- design center: `Claude Code`
-- Codex should be treated as a constrained follow-up adaptation target, not as the feature ceiling
-- `OpenCode` and internal runtimes are follow-up targets unless a concrete need pulls them forward
-
-The current priority is to define the reusable loop kernel, not to fully flesh out every runtime surface.
-
-## File Ownership Rules
-
-### Root-level files
-
-Use root-level project files for:
-
-- local operating rules
-- local build/generation entry points
-- repository-wide configuration
-
-### `docs/`
-
-Use `docs/` for:
-
-- durable design/spec/reference documents
-- milestone tracking
-- architecture decisions
-- research summaries
-
-### `templates/`
-
-Use `templates/` for:
-
-- distributable provider/project templates
-- provider-facing `AGENTS.md` / `CLAUDE.md`
-- shipping runtime assets
-
-If `templates/` structure is not created yet, treat that as a pending structural task, not as permission to place distributable behavior anywhere convenient.
-
-## What To Do In This Repo By Default
-
-When working on `everything-automate`:
-
-- prefer small structural moves that clarify ownership
-- keep local authoring concerns separate from shipping template concerns
-- update docs when a design decision becomes important enough to guide later work
-- keep `AGENTS.md` focused on always-relevant session rules
-- keep implementation milestones sequential and one-step-at-a-time
-
-## What Not To Do
-
-- do not mix local helper behavior with distributable template behavior without marking ownership clearly
-- do not implement provider-specific runtime logic first when the shared kernel is still unstable
-- do not let detailed docs replace the need for a local session entry contract
-- do not scatter the same rule across multiple files with different wording unless one file is clearly the source of truth
+- Follow the repo’s existing commit style: `feat: ...`, `docs: ...`, `chore: ...`.
+- Keep commits scoped to one change area when possible.
+- PRs should explain:
+  - what changed
+  - why it changed
+  - how it was verified
+- Include file paths or commands where useful, for example `templates/codex/skills/planning/SKILL.md` or `python3 scripts/install_global.py doctor --provider codex`.
