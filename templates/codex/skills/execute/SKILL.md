@@ -208,6 +208,85 @@ After each verification pass:
   - if still in-bound, fold it into the current AC
   - otherwise stop and return to `$planning`
 
+## Branch Examples
+
+Use the following examples to keep branch semantics concrete.
+
+### `pass`
+
+Example:
+
+- current AC: add `setup` and `doctor` subcommands to the global installer
+- evidence:
+  - `python3 -m py_compile scripts/install_common.py scripts/install_global.py`
+  - temp install root setup succeeds
+  - temp install root doctor output succeeds
+
+Decision:
+
+```text
+decide: pass
+reason: required AC behavior is present and fresh evidence proves it
+next action: mark the AC complete and move to the next AC
+```
+
+### `fail`
+
+Example:
+
+- current AC: doctor reports missing managed assets correctly
+- evidence:
+  - script runs
+  - doctor crashes on a missing manifest path
+
+Decision:
+
+```text
+decide: fail
+reason: implementation exists but fresh evidence shows the AC is not satisfied
+next action: fix and re-verify within retry bounds
+```
+
+Use `fail` when the current AC is still the right target and a local fix is plausible.
+
+### `blocked`
+
+Example:
+
+- current AC: verify installed skill usability against the real global Codex environment
+- evidence:
+  - local files are present
+  - the needed external environment, permission, or dependency is unavailable
+
+Decision:
+
+```text
+decide: blocked
+reason: valid continuation depends on an external prerequisite that local fixing cannot supply
+next action: stop the run and report the blocker clearly
+```
+
+In v0, `blocked` stops the current run rather than skipping ahead to unrelated ACs.
+
+### `scope_drift`
+
+Example:
+
+- current AC: add explicit refusal behavior when `approval_state != approved`
+- discovered work:
+  - a small wording fix in the same refusal section
+    -> still in-bound
+  - redesigning planning approval semantics across multiple upstream skills
+    -> out-of-bound
+
+Decision:
+
+```text
+decide: scope_drift
+reason: newly discovered work crosses the current execution boundary
+next action: return to $planning unless the discovered work is clearly still in-bound
+```
+
 ## Retry and Escalation
 
 Retry is bounded.
@@ -220,6 +299,59 @@ Per AC:
 - if the blocker is external, permission-based, or requirement-based, stop and report it
 
 Do not loop forever.
+
+### Retry / Escalation Example
+
+Example:
+
+- current AC: doctor reports missing managed assets correctly
+- first attempt fails because doctor ignores one missing directory
+- second attempt fails for the same reason with only cosmetic code changes
+- third attempt still fails and no materially new approach exists
+
+Decision:
+
+```text
+decide: failed
+reason: bounded retry exhausted without a materially new path to success
+next action: stop local retry and report whether replanning or external help is needed
+```
+
+If repeated failure reveals that the plan itself is underspecified, return to `$planning` instead of forcing `failed` immediately.
+
+## Scope Drift Examples
+
+### In-Bound Scope Drift
+
+Example:
+
+- current AC: install Codex skills into `~/.codex/skills/`
+- discovered work: create the missing parent directory before copying files
+
+Decision:
+
+```text
+scope_drift: in-bound
+action: fold into the current AC
+```
+
+This is still in-bound because it is a small enabling step required to satisfy the same AC without changing the plan boundary.
+
+### Out-of-Bound Scope Drift
+
+Example:
+
+- current AC: harden `execute` readiness and branch semantics
+- discovered work: invent a new progress artifact format and wire it into runtime helpers
+
+Decision:
+
+```text
+scope_drift: out-of-bound
+action: stop execution and return to $planning
+```
+
+This is out-of-bound because it changes the next design slice rather than completing the current AC.
 
 ## When Reviewer Verification Is Required
 

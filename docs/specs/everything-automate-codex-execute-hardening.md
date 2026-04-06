@@ -140,9 +140,9 @@ readiness check
 
 - [x] `planning -> execute` handoff example 하나를 실제로 읽어 본다.
 - [x] readiness failure 예시를 하나 만든다.
-- [ ] verify / decide 분기 예시를 문서화한다.
-- [ ] retry bound와 escalation example을 만든다.
-- [ ] scope drift in-bound / out-of-bound 예시를 만든다.
+- [x] verify / decide 분기 예시를 문서화한다.
+- [x] retry bound와 escalation example을 만든다.
+- [x] scope drift in-bound / out-of-bound 예시를 만든다.
 - [ ] partial-progress summary example을 만든다.
 - [ ] `complete / cancelled / failed / interrupted` summary example을 만든다.
 - [ ] `ea_state.py`와 `execute` contract의 gap을 정리한다.
@@ -278,6 +278,123 @@ next action:
 - `execute`는 이 상황에서 코드를 만지거나 AC를 선택하면 안 된다.
 - handoff completeness와 execution readiness는 같은 개념이 아니다.
 - `M5`에서 `execute`는 "handoff exists"가 아니라 "approved and executable"을 entry gate로 써야 한다.
+
+### Example 3. `pass`
+
+상황:
+
+- current AC: global installer에 `setup`과 `doctor` surface를 추가한다.
+- fresh evidence:
+  - `python3 -m py_compile scripts/install_common.py scripts/install_global.py`
+  - temp install root에서 `setup` 성공
+  - temp install root에서 `doctor` 성공
+
+기대 동작:
+
+```text
+decide: pass
+reason: current AC is satisfied and fresh evidence proves it
+next action: mark the AC complete and move on
+```
+
+현재 판단:
+
+- `pass`는 단순히 코드가 있어 보인다는 뜻이 아니다.
+- 현재 AC를 증명하는 fresh evidence가 있어야 한다.
+
+### Example 4. `fail`
+
+상황:
+
+- current AC: doctor가 missing managed asset을 올바르게 보고한다.
+- fresh evidence:
+  - command는 실행되지만
+  - missing manifest path에서 crash한다.
+
+기대 동작:
+
+```text
+decide: fail
+reason: current AC is still the right target, but fresh evidence shows it is not satisfied
+next action: fix and re-verify within retry bounds
+```
+
+현재 판단:
+
+- `fail`은 local retry가 여전히 합리적인 경우다.
+- 아직 blocker나 replanning으로 넘기기 전의 상태다.
+
+### Example 5. `blocked`
+
+상황:
+
+- current AC: 실제 global Codex 환경에서 installed skill usability를 검증한다.
+- local evidence:
+  - 설치된 파일은 있다.
+  - 하지만 필요한 외부 환경, 권한, 또는 dependency가 현재 세션에는 없다.
+
+기대 동작:
+
+```text
+decide: blocked
+reason: valid continuation depends on an external prerequisite that local fixing cannot supply
+next action: stop the current run and report the blocker clearly
+```
+
+현재 판단:
+
+- v0에서는 `blocked`가 나오면 현재 run을 멈추는 쪽으로 본다.
+- 다른 AC로 건너뛰는 multi-lane executor로 보지 않는다.
+
+### Example 6. `scope_drift`
+
+상황:
+
+- current AC: `approval_state != approved` refusal semantics를 고정한다.
+- discovered work:
+  - refusal 문구를 같은 section에서 조금 더 명확히 다듬는 일
+  - planning approval semantics 전체를 다시 설계하는 일
+
+기대 동작:
+
+```text
+small wording fix
+  -> scope_drift in-bound
+  -> absorb into current AC
+
+planning approval redesign
+  -> scope_drift out-of-bound
+  -> stop and return to $planning
+```
+
+현재 판단:
+
+- `scope_drift`는 발견된 일이 있다는 사실만으로 바로 planning 복귀를 뜻하지 않는다.
+- 같은 AC를 끝내기 위한 작은 enabling work는 흡수 가능하다.
+- boundary-crossing work만 planning으로 되돌린다.
+
+### Example 7. Retry / Escalation
+
+상황:
+
+- current AC: doctor가 missing managed asset을 올바르게 보고한다.
+- first retry 후에도 같은 failure
+- second retry 후에도 같은 failure
+- third retry 후에도 materially new approach 없이 같은 failure
+
+기대 동작:
+
+```text
+decide: failed
+reason: bounded retry exhausted without a materially new path to success
+next action: stop local retry and report whether replanning or external unblock is needed
+```
+
+현재 판단:
+
+- local retry는 무한루프가 아니다.
+- 같은 실패를 반복하는데 접근 자체가 바뀌지 않았다면 `failed` 또는 replanning으로 넘어가야 한다.
+- 반대로 evidence가 plan 자체의 부족함을 보여주면 `failed`보다 `$planning` 복귀가 더 맞을 수 있다.
 
 ### Initial State Gap Observation
 
