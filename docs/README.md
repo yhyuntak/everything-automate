@@ -39,7 +39,7 @@ covers:
 - `docs/specs/everything-automate-operating-principles.md`
   Korean operating principles for writing and maintaining `everything-automate` documents as durable, time-independent sources of truth.
 - `docs/specs/everything-automate-implementation-milestones.md`
-  Sequential implementation milestones for bringing the loop kernel online from v0 contracts through later adapter and runtime expansion.
+  Current milestone plan for rebuilding Everything Automate around the user-facing flow: `brainstorming -> planning -> execute -> qa -> commit`.
 - `docs/specs/everything-automate-loop-state-contract.md`
   M1 contract for the shared task-scoped loop state used by the v0 kernel.
 - `docs/specs/everything-automate-plan-artifact-contract.md`

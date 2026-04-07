@@ -1,127 +1,201 @@
 ---
 name: brainstorming
-description: Help turn a vague idea into a clearer direction before planning.
-argument-hint: "<idea, feature direction, or vague request>"
+description: Help shape an idea, feature, design direction, or document direction before deciding what to do next.
+argument-hint: "<idea, feature, design question, doc idea, or vague request>"
 ---
 
 # brainstorming
 
-Use this when the user has an idea, but it is still too fuzzy to plan.
+Use this when the user needs help thinking, not just help planning execution.
 
 ## Purpose
 
-Use brainstorming when the user needs help deciding what they want before turning it into a real plan.
+`brainstorming` is a thinking skill.
 
-Brainstorming should:
+Its job is to:
 
-- clarify what the user is really trying to achieve
-- surface limits and non-goals early
-- explore a few realistic directions
-- recommend one direction and explain the tradeoffs
-- leave behind a short brief that can later feed `$planning`
+- make a fuzzy idea clearer
+- help the user say what they really want
+- narrow a broad thought into a direction
+- compare a few realistic directions when useful
+- recommend one direction when that helps
+- end with a useful next step
 
-Brainstorming comes before planning.
-It is not implementation and it is not step-by-step execution planning.
+That next step may be:
+
+- stop here
+- keep brainstorming
+- move to `$planning`
+
+`brainstorming` does **not** have to end in planning.
 
 ## Use When
 
-- the user has an idea but not yet a clear plan
-- the user wants to compare approaches before planning
-- the request is exploratory, product-focused, or design-focused
-- scope feels fuzzy enough that planning would be premature
-- the user explicitly asks to brainstorm
+Use `brainstorming` when the user wants help with any of these:
+
+- shaping a raw idea
+- turning a backlog item into something clearer
+- thinking through a feature direction
+- thinking through a design direction
+- thinking through a document direction
+- sorting out a vague request before deciding whether execution even makes sense
 
 ## Do Not Use When
 
-- the request is already concrete enough for `$planning`
-- the user already has a clear direction and wants an execution plan
-- the task is only to review an existing plan
+Do **not** use `brainstorming` when:
 
-## Interaction Policy
+- the request is already clear enough for `$planning`
+- the user already wants a file-based execution plan
+- the user already has an approved plan and wants implementation
+- the task is only to review finished work
 
-Brainstorming is interactive by default.
+## Core Rule
 
-- Ask one question at a time.
-- Prefer one strong question over a long checklist.
-- Do not ask the user for codebase facts that can be explored directly.
-- If the request touches an existing codebase, ground yourself first with `explorer`.
-- Once the direction is clear enough, stop asking and move into options and recommendation.
+`brainstorming` is not implementation.
+It is not execution planning.
+It is not a hidden version of `$planning`.
+
+Its job is to help the user think clearly enough to choose a direction.
+
+## Routing
+
+Start by routing the request into one of 4 lanes.
+
+### 1. `idea shaping`
+
+Use this when the user has a broad idea, a vague direction, or an early thought that is still hard to name clearly.
+
+### 2. `feature shaping`
+
+Use this when the user has a backlog item, feature idea, or product change that needs clearer scope and value.
+
+### 3. `design shaping`
+
+Use this when the user is thinking about code design, technical structure, architecture direction, or testing direction.
+
+### 4. `doc shaping`
+
+Use this when the user is thinking about a document, note, guide, spec, README, or other writing direction.
+
+## Interaction Style
+
+`brainstorming` is interactive by default.
+
+- Ask one strong question at a time.
+- Do not dump a long checklist on the user.
+- Use simple English.
+- Reflect back what became clearer before asking the next question.
+- Stop asking once the direction is clear enough.
+
+If repo context matters, look first before asking the user for facts that the repo can tell you.
+
+## Lane Goals
+
+Do not force one fixed interview script.
+Instead, use questions that help reveal the right things for the current lane.
+
+### `idea shaping`
+
+Try to reveal:
+
+- why this idea matters
+- what change the user wants to see
+- what still feels blurry
+- what kind of direction feels promising
+
+### `feature shaping`
+
+Try to reveal:
+
+- who the feature is for
+- what value it should create
+- what the smallest useful version is
+- what should stay out of scope for now
+
+### `design shaping`
+
+Try to reveal:
+
+- what technical problem needs a direction
+- what constraints already exist
+- what must not break
+- what kind of test strategy makes sense
+
+### `doc shaping`
+
+Try to reveal:
+
+- who the document is for
+- what the reader should understand or do after reading
+- what kind of document this is
+- what structure would make it easiest to use
 
 ## Default Flow
 
 ```text
 request
-  -> quick context check
-  -> explorer if repo context helps
-  -> one-question-at-a-time clarification
-  -> identify intent / constraints / non-goals
-  -> propose 2-3 directions
-  -> compare tradeoffs
-  -> recommend one direction
-  -> user reacts
-  -> revise if needed
-  -> finalize brainstorm brief
-  -> recommend next step: stop or move to $planning
+  -> quick route
+  -> pick the lane
+  -> ask the strongest next question
+  -> reflect back what became clearer
+  -> ask again only if needed
+  -> narrow the direction
+  -> recommend or synthesize
+  -> choose next step
+     -> stop
+     -> keep brainstorming
+     -> move to $planning
 ```
 
 ## Rules
 
 - Do not implement during brainstorming.
-- Do not jump into implementation steps too early.
-- Clarify why the user wants the change before narrowing how to build it.
-- Ask about scope boundaries and non-goals before polishing solution details.
-- Explore the codebase before asking technical questions the repository can answer.
-- Offer 2-3 options unless the space is obviously binary or heavily constrained.
-- Lead with your recommended option and explain why.
-- Keep the conversation collaborative, but aim to end with one clear recommendation.
+- Do not turn brainstorming into hidden planning.
+- Do not force the user into `$planning` if they only want thought cleanup.
+- Do not use one rigid question list for every lane.
+- Do not force one rigid output template for every brainstorm.
+- Ask about the reason behind the request before pushing too fast into how to build it.
+- Keep the result useful, but not over-structured.
 
-## Suggested Question Order
+## Output Modes
 
-When clarification is needed, prefer this order:
+End in the form that best fits the discussion.
 
-1. intent
-2. desired outcome
-3. scope
-4. non-goals
-5. constraints
-6. decision boundaries
+Allowed output modes include:
 
-Do not ask every category by default if the answer is already obvious from context or easy to explore.
+- `idea brief`
+- `feature direction note`
+- `design direction note`
+- `doc direction note`
+- `option comparison`
+- `recommended direction`
+- `planning handoff note`
 
-## Output
+Do not force the same shape every time.
 
-Brainstorming should end with a short brief containing:
+No matter which mode you use, the result should make these clear enough:
 
-- problem or opportunity
-- user intent
-- desired outcome
-- in-scope
-- non-goals
-- constraints
-- options considered
-- recommended direction
-- open questions, if any
-- recommended next step
+- what the user is trying to do
+- what direction now looks strongest
+- what is still open, if anything
+- what the next step should be
 
-## Handoff Boundary
+## When To Move To `$planning`
 
-Brainstorming does not produce the final execution plan.
+Move to `$planning` only when the user now wants execution planning.
 
-If the user wants to move forward after the direction is chosen:
+That usually means:
 
-```text
-brainstorming
-  -> approved direction
-  -> $planning
-```
-
-If the user only wanted ideation or comparison, stop after the brief.
+- the direction is clear enough
+- scope is clear enough
+- the user wants real implementation planning
+- a file-based plan would now help more than another thinking pass
 
 ## Completion
 
-Brainstorming is complete when:
+`brainstorming` is complete when:
 
-- the user understands the main options
-- one direction is recommended clearly
-- scope and non-goals are visible enough to avoid premature planning mistakes
-- the next step is explicit: stop, refine further, or move to `$planning`
+- the user can see the direction more clearly
+- the conversation has produced a useful thinking result
+- the next step is clear
+- the user can either stop, continue brainstorming, or move to `$planning`

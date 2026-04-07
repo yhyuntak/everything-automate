@@ -1,281 +1,286 @@
 ---
 title: Everything Automate Implementation Milestones
-description: everything-automate 루프 커널을 v0 계약부터 어댑터 확장까지 순차적으로 구현하기 위한 단계별 마일스톤을 정의한다.
+description: everything-automate를 내가 이해하고 실제로 쓸 수 있는 흐름으로 다시 세우기 위한 단계별 마일스톤 문서.
 doc_type: workflow
 scope:
   - implementation milestones
-  - v0 kernel
-  - execution flow
-  - bootstrap
+  - user-facing flow
   - codex
-  - execution
+  - brainstorming
+  - planning
+  - execute
+  - qa
 covers:
-  - docs/specs/everything-automate-loop-kernel-draft.md
   - docs/specs/everything-automate-operating-principles.md
   - docs/specs/everything-automate-planning-workflow.md
+  - docs/specs/everything-automate-codex-execute-hardening.md
 ---
 
 # Everything Automate 구현 마일스톤
 
-이 문서는 `everything-automate`의 구현 경로를 한 단계씩 나누어 정의한다.
-핵심 원칙은 간단하다.
+이 문서는 `everything-automate`를 다시 단순하게 잡기 위한 현재 기준 문서다.
 
-- 한 번에 한 단계만 진행한다.
-- 다음 단계는 이전 단계의 계약과 검증이 끝나야 시작한다.
-- 초기는 반드시 `v0` 루프 커널 계약부터 고정하고, 그 다음에 실행 흐름과 주변 런타임 기능을 넓힌다.
+이번 재정리의 핵심은 이것이다.
+
+- 남의 Ralph loop를 닮았는지가 기준이 아니다.
+- 내가 이해할 수 있고 실제로 쓰고 싶은 흐름이 기준이다.
+- 먼저 사용자 플로우를 고정한다.
+- state, progress, installer 같은 것은 뒤의 숨겨진 지원층으로 둔다.
+
+## 가장 중요한 흐름
+
+현재 기준의 메인 플로우는 이것이다.
+
+```text
+$brainstorming
+  -> $planning
+  -> $execute
+  -> $qa
+  -> commit
+```
+
+각 단계의 뜻은 단순하다.
+
+- `$brainstorming`
+  아이디어를 작업 가능한 방향으로 좁힌다.
+- `$planning`
+  파일 기반 plan을 만든다.
+- `$execute`
+  AC 단위로 구현하고, 가능한 경우 테스트를 먼저 쓰고 검증하며 진행한다.
+- `$qa`
+  plan대로 잘 되었는지, 코드 품질과 위험은 괜찮은지, commit해도 되는지 다시 본다.
+- `commit`
+  최종 검증이 끝난 뒤 남긴다.
+
+## 숨겨진 지원층
+
+아래 요소들은 필요하지만 메인 플로우의 중심은 아니다.
+
+```text
+hidden support
+  -> state
+  -> progress
+  -> recovery
+  -> installer
+```
+
+이것들은 사용자가 먼저 이해해야 할 대상이 아니다.
+메인 플로우를 돕는 내부 지원층이다.
 
 ## 진행 원칙
 
-### 순서 규칙
+### 1. 사용자 플로우를 먼저 고정한다
 
-```text
-v0 kernel contracts
-  -> execution flow
-  -> minimal bootstrap/intake
-  -> Codex workflow surfaces
-  -> Codex execute hardening
-  -> optional Codex runtime refinement
-  -> later expansion
-```
+구현보다 먼저, 사람이 어떻게 쓰는지부터 분명해야 한다.
 
-### 단계 완료 기준
+### 2. 쉬운 말로 쓴다
 
-- 각 단계는 동작하는 산출물을 하나 이상 남겨야 한다.
-- 각 단계는 완료 조건이 명확해야 한다.
-- 각 단계는 다음 단계로 넘어가기 전에 검증 가능해야 한다.
+어려운 말은 줄인다.
+중학생이 읽어도 흐름을 따라갈 수 있어야 한다.
 
-## 마일스톤
+### 3. 테스트는 뒤가 아니라 실행의 중심이다
+
+`$execute`는 "코드 먼저 짜고 나중에 테스트"를 기본으로 하지 않는다.
+프로젝트 성격에 따라 다르지만, 가능한 경우 테스트를 먼저 쓰는 쪽을 기본으로 본다.
+
+### 4. 단계 이름보다 단계 안의 행동이 더 중요하다
+
+`brainstorming`, `planning`, `execute`, `qa`라는 이름만 있는 것은 부족하다.
+각 단계에서 실제로 무엇을 하는지가 보여야 한다.
+
+### 5. state와 runtime은 나중에 붙인다
+
+state와 runtime support는 필요하지만, 그것이 메인 플로우를 설명하는 자리를 차지하면 안 된다.
 
 ## 현재 상태
 
-현재 구현 기준으로 보면:
+현재 구현 상태는 이렇게 본다.
 
 ```text
 M0 완료
-M1 완료
-M2 완료
-M3 완료
-M4 대부분 완료
-M5 현재 진행 단계
-M6+ 보류
+M1 다음 작업
+그 뒤 단계는 아직 재설계 대상
 ```
 
-현재 active scope는 Codex 기준이다.
+이미 있는 것:
 
-- `brainstorming -> planning -> execute` surface는 이미 잡혔다.
-- global Codex setup installer v0도 이미 구현됐다.
-- 다음 실제 작업은 `execute` 안의 verify / decide / retry / state 연동을 하드닝하는 것이다.
+- Codex global installer v0
+- `brainstorming`, `planning`, `execute` skill 초안
+- state/progress helper 초안
 
-현재 이 저장소에서 **하지 않는 것**:
+하지만 이것들은 아직 최종 구조가 아니다.
+지금부터는 **마일스톤 자체를 다시 잡고, 각 skill을 위에서부터 다시 설계**한다.
 
-- Claude adaptation 본격 구현
-- internal service adapter 본격 구현
+## 마일스톤
 
-이 둘은 나중 단계나 다른 작업 흐름으로 미룬다.
+### M0. 리셋과 기준선 고정
 
-### M0. 범위 고정과 기준선 정리
+목적: 무엇을 만들고 싶은지 다시 고정한다.
 
-목적: 구현 전에 문서와 범위를 고정한다.
+이 단계에서 하는 일:
 
-- `everything-automate-loop-kernel-draft.md`를 기준 설계로 삼는다.
-- 이 문서와 운영 원칙 문서를 현재 기준으로 만든다.
-- 로컬 authoring layer와 distributable template layer를 분리한다.
-- 로컬 운영 원칙은 루트 `AGENTS.md`가 담당하고, 배포 대상 런타임 자산은 앞으로 `templates/`를 source of truth로 삼는다는 규칙을 고정한다.
-- `v0`에서 다루지 않을 범위를 분명히 적는다.
-
-완료 조건:
-
-- 구현 범위가 `v0`와 이후 확장으로 나뉜다.
-- 새 기능을 추가하기 전에 지켜야 할 문서 기준이 정리된다.
-- 어떤 파일이 로컬 전용이고 어떤 파일이 배포 대상인지 소유권 규칙이 정리된다.
-
-### M1. v0 루프 커널 계약 고정
-
-목적: 실행 흐름보다 먼저, 상태와 계약을 정의한다.
-
-이 단계에서 고정할 것:
-
-- `loop-state`의 최소 필드
-- `plan-artifact`의 최소 구조
-- `verification`의 최소 evidence 구조
-- `decision-engine`의 상태 전이 규칙
-- `cancel`의 종료 의미
+- 메인 플로우를 `brainstorming -> planning -> execute -> qa -> commit`으로 고정
+- state/runtime/installer를 숨겨진 지원층으로 내림
+- 쉬운 영어와 쉬운 설명을 기본 원칙으로 고정
+- 이 저장소에서 지금 하지 않을 것을 분명히 적음
 
 완료 조건:
 
-- task 단위 상태가 하나의 계약으로 표현된다.
-- 계획, 검증, 결정이 같은 상태 모델을 공유한다.
-- 아직 어댑터나 고급 런타임이 없어도 계약을 읽을 수 있다.
+- 메인 플로우가 한 장으로 설명된다.
+- 각 단계의 큰 목적이 분명하다.
+- 내부 지원층이 메인 UX를 밀어내지 않는다.
 
-### M2. 실행 흐름 연결
+### M1. `$brainstorming` 재설계
 
-목적: 계약을 실제 순서로 움직이게 만든다.
+목적: 아이디어를 내가 이해할 수 있는 말로 정리하고, 다음 단계로 넘길 수 있는 짧은 brief를 만든다.
 
-이 단계에서 연결할 것:
+이 단계에서 하는 일:
 
-- `plan -> execute -> verify -> decide` inner loop
-- `bootstrap -> intake -> ... -> wrap` outer flow
-- 상태 전이와 검증 결과 반영
-
-완료 조건:
-
-- 실행 흐름이 상태 전이로 설명된다.
-- 검증 결과에 따라 `continue`, `fix`, `complete`, `cancel`, `fail` 판단이 가능하다.
-- 흐름이 문서가 아니라 실제 런타임 행위로 연결된다.
-
-### M3. 최소 bootstrap / intake
-
-목적: 작업을 시작하기 전에 최소한의 런타임 진입점을 만든다.
-
-이 단계에서 다룰 것:
-
-- 런타임 규칙 주입
-- 작업 분류: 직접 실행, 확인 필요, 계획 필요
-- task id와 실행 의도 기록
-- 템플릿 레이어에서 provider별 진입 파일이 어떤 공통 계약을 읽는지 결정
+- 왜 이 작업을 하고 싶은지 먼저 묻는 흐름 정리
+- 아이디어, backlog item, feature request를 작업 방향으로 좁히는 규칙 정리
+- 너무 빠르게 구현이나 상세 설계로 내려가지 않게 경계 정리
+- output brief 형식 재정의
+- 언제 멈추고, 언제 `$planning`으로 넘기는지 기준 정리
 
 완료 조건:
 
-- 새 작업이 들어오면 처리 경로가 분류된다.
-- 런타임이 어떤 계약을 사용할지 최소한으로 결정할 수 있다.
-- 로컬 개발용 규칙과 배포용 진입 파일이 서로 역할을 침범하지 않는다.
+- `$brainstorming`의 질문 순서와 종료 기준이 단순하게 설명된다.
+- output brief가 다음 단계로 넘기기 충분하다.
+- 사용자가 "왜 이 방향을 추천받았는지" 이해할 수 있다.
 
-### M4. Codex workflow surfaces와 handoff
+### M2. `$planning` 재설계
 
-목적: Codex 사용자가 세션 안에서 밟는 canonical workflow를 먼저 고정한다.
+목적: brief를 plan 파일로 바꾸고, 구현 전에 test strategy까지 같이 고정한다.
 
-이 단계에서 구현할 것:
+이 단계에서 하는 일:
 
-- `$brainstorming`, `$planning`, `$execute` 같은 primary surface 정의
-- planning에서 execution으로 넘어가는 handoff contract
-- plan artifact에서 execution intent를 읽는 방식
-- 인세션 workflow와 shared kernel의 연결 규칙
-
-완료 조건:
-
-- Codex의 1차 사용자 경험이 인세션 workflow로 설명된다.
-- approved plan이 execution handoff로 자연스럽게 이어진다.
-- `brainstorming`, `planning`, `execute`의 역할 경계가 분명하다.
-- 바깥 runtime은 메인 UX가 아니라 내부 구현 레이어로 위치가 정리된다.
-
-### M5. Codex execute hardening
-
-목적: `M4`에서 정한 `execute` surface가 실제로 verify / decide / retry / state 연동까지 버티는지 검증하고 부족한 계약을 보완한다.
-
-이 단계에서 다룰 것:
-
-- `execute`가 planning handoff를 충분히 읽는지 검증
-- readiness check가 실제로 충분한지 검증
-- `execute -> verify -> decide -> fix -> repeat` 루프가 실제 skill contract로 충분한지 검증
-- retry / escalation / scope drift / blocker handling 하드닝
-- `complete`, `cancelled`, `failed`, `suspended/interrupted`가 안 섞이도록 terminal semantics 하드닝
-- AC progress / partial-progress / terminal summary contract 검증
-- `runtime/ea_state.py`와의 연결 필요성 및 gap 확인
-- global installer로 깐 Codex skill이 실제 사용 가능한지 확인
+- plan 파일 구조를 다시 정의
+- AC를 더 읽기 쉽게 정리
+- test strategy를 planning의 필수 항목으로 올림
+- 프로젝트 종류에 따라 어떤 테스트가 맞는지 정하는 규칙 정리
+  - no-test change
+  - unit-first
+  - integration-first
+  - service verification
+  - web E2E
+- handoff를 `$execute`가 이해하기 쉽게 단순화
 
 완료 조건:
 
-- `execute`가 planning handoff를 기준으로 자연스럽게 시작할 수 있다.
-- `verify`와 `decide`가 `execute` 내부 루프 안에서 충분히 설명되고 검증된다.
-- progress / retry / blocker / terminal semantics가 모호하지 않다.
-- 필요한 state/runtime support gap이 식별되고, 다음 단계의 입력으로 정리된다.
+- `$planning` 결과가 plan 파일로 남는다.
+- AC와 test strategy가 plan 안에 같이 있다.
+- `$execute`가 읽어야 할 입력이 단순하고 분명하다.
 
-### M6. optional Codex runtime refinement
+### M3. `$execute` 재설계
 
-목적: `M5`에서 드러난 gap이 있으면 Codex runtime/state/refinement를 추가로 다듬는다.
+목적: 구현 단계를 블랙박스가 아니라, AC 단위의 반복 가능한 작업 흐름으로 만든다.
 
-이 단계에서 다룰 것:
+이 단계에서 하는 일:
 
-- `runtime/ea_state.py` 연동 강화
-- status / cancel / resume 표면 보강
-- installer / manifest / doctor refinement
-- handoff artifact 소비 경로 보강
+- `$execute`의 실제 작업 순서를 다시 정의
+- 가능한 경우 test-first 또는 test-with-code 흐름을 기본으로 둠
+- AC 하나를 고르고, 테스트를 쓰고, 실패를 보고, 구현하고, 다시 확인하는 흐름 정리
+- project type에 따라 어떤 verify를 먼저 돌릴지 읽는 규칙 정리
+- 너무 많은 state 용어 없이도 이해 가능한 실행 설명으로 바꿈
 
-완료 조건:
+기본 흐름:
 
-- Codex runtime support가 `execute` UX를 해치지 않으면서도 recovery를 충분히 보조한다.
-- runtime helper가 실제로 필요한 만큼만 존재한다.
-
-### M7. out-of-scope adapters
-
-목적: 다른 provider adaptation은 현재 저장소의 active 구현 범위 밖으로 둔다.
-
-이 단계에서 추가할 것:
-
-- Claude adaptation
-- OpenCode adapter
-- internal runtime adapter
-- provider별 bootstrap 차이
-- tool mapping overlay
+```text
+pick AC
+  -> choose test lane
+  -> write or update test first if it makes sense
+  -> run targeted test and see current failure
+  -> implement
+  -> rerun targeted test
+  -> run broader verify if needed
+  -> move to next AC
+```
 
 완료 조건:
 
-- 이 단계는 현재 active scope가 아니다.
-- 필요 시 별도 작업 흐름이나 후속 저장소/브랜치에서 진행한다.
+- `$execute`를 읽으면 실제로 어떤 순서로 일하는지 보인다.
+- 테스트가 실행의 중심에 있다.
+- verify와 decide가 내부에서 어떻게 쓰이는지 쉬운 말로 설명된다.
 
-### M8. later expansion
+### M4. `$qa` 설계
 
-목적: 안정화된 커널 위에 확장 기능을 순차적으로 올린다.
+목적: commit 전에 한 번 더 전체를 보는 최종 검증 단계를 만든다.
 
-이 단계에서 검토할 것:
+이 단계에서 하는 일:
 
-- `subagents` 실행 모드
-- `team` 런타임
-- browser/reviewer evidence
-- run history와 경량 메모리
+- `$qa`를 새 user-facing 단계로 정의
+- plan과 실제 결과가 맞는지 확인하는 규칙 정리
+- 코드 품질, 보안, 구조, 위험, 누락을 보는 check 정리
+- 필요한 경우 reviewer-style agent나 skill을 어디까지 쓸지 결정
+- commit 전에 무엇이 통과되어야 하는지 commit gate 정의
 
 완료 조건:
 
-- 확장 기능이 커널 계약을 침범하지 않는다.
-- 각 확장은 독립적으로 켜고 끌 수 있다.
-- 새 기능이 들어와도 `v0`의 의미가 흐려지지 않는다.
+- `$qa`가 무엇을 보는 단계인지 분명하다.
+- `$execute` 안의 AC 검증과 `$qa`의 최종 검증이 구분된다.
+- commit 전 기준이 문서로 남는다.
+
+### M5. 숨겨진 지원층 정리
+
+목적: 이제서야 state, progress, recovery, installer를 메인 플로우에 맞춰 다시 정리한다.
+
+이 단계에서 하는 일:
+
+- `ea_state.py`, `ea_progress.py`, `ea_codex.py`의 역할을 다시 점검
+- 메인 플로우를 해치지 않는 범위에서만 지원층을 남김
+- progress와 terminal summary가 진짜 필요한지, 필요하면 어디까지 필요한지 다시 판단
+- installer도 user-facing skill 흐름을 돕는 범위로만 유지
+
+완료 조건:
+
+- 내부 지원층이 메인 플로우와 충돌하지 않는다.
+- state/runtime이 과하게 앞에 나오지 않는다.
+- 필요한 지원만 남기고 과한 부분은 제거하거나 뒤로 민다.
+
+### M6. 설치와 사용 마무리
+
+목적: 실제로 설치해서 쓸 수 있게 정리한다.
+
+이 단계에서 하는 일:
+
+- global Codex setup 흐름을 현재 플로우 기준으로 다시 점검
+- 설치 후 어떤 skill이 보이고, 어떤 순서로 쓰는지 안내문 정리
+- doctor, backup, manifest 같은 도구 설명을 메인 플로우에 맞게 다듬음
+
+완료 조건:
+
+- 처음 보는 사람도 설치 후 무엇을 먼저 해야 할지 안다.
+- 설치 문서가 현재 메인 플로우와 맞는다.
 
 ## 단계 의존성
 
 ```text
-M1 계약 고정
-  -> M2 실행 흐름
-  -> M3 최소 bootstrap/intake
-  -> M4 Codex workflow surfaces와 handoff
-  -> M5 Codex execute hardening
-  -> M6 optional Codex runtime refinement
-  -> M7 out-of-scope adapters
-  -> M8 later expansion
+M0 reset
+  -> M1 brainstorming
+  -> M2 planning
+  -> M3 execute
+  -> M4 qa
+  -> M5 hidden support
+  -> M6 install polish
 ```
 
-이 순서를 바꾸지 않는다.
-특히 `adapter`, `team`, `subagents` 같은 기능은 `v0` 계약이 안정되기 전에는 앞당기지 않는다.
+이 순서를 크게 바꾸지 않는다.
+특히 `state`, `progress`, `recovery`는 다시 뒤로 민다.
 
-## 단계별 산출물
+## 지금 당장 할 일
 
-- `M1`
-  상태 계약 문서, plan/evidence 스키마, 결정 규칙
-- `M2`
-  상태 전이표, inner loop 흐름, outer flow 연결
-- `M3`
-  최소 진입점, 작업 분류 규칙, 실행 의도 기록, 템플릿 진입 규칙
-- `M4`
-  Codex workflow surfaces, handoff contract, execution intent 규칙
-- `M5`
-  execute hardening checklist, verify/decide/retry/state gap 검증
-- `M6`
-  optional Codex runtime refinement, installer/doctor/state 보강
-- `M7`
-  out-of-scope provider adapters
-- `M8`
-  확장 기능 선택지와 활성화 조건
+현재 바로 다음 작업은 이것이다.
 
-## 구현 판단
+1. `$brainstorming`을 다시 설계한다.
+2. 그 다음 `$planning`을 다시 설계한다.
+3. 그 다음 `$execute`를 다시 설계한다.
+4. 그 뒤에 `$qa`를 만든다.
+5. 마지막에 내부 지원층을 다시 정리한다.
 
-이 프로젝트는 처음부터 큰 런타임을 만들기보다, 먼저 커널을 작게 고정하는 쪽이 맞다.
+## 기억해야 할 한 줄
 
-따라서 실제 구현 우선순위는 다음과 같다.
+이 프로젝트는 남의 Ralph loop를 닮게 만드는 것이 목표가 아니다.
 
-1. 상태 계약을 고정한다.
-2. 실행 흐름을 연결한다.
-3. 최소 진입점을 만든다.
-4. Codex workflow surfaces를 먼저 굳힌다.
-5. `execute`를 실제로 하드닝한다.
-6. 필요할 때만 Codex runtime/support를 추가 보강한다.
-7. 다른 provider adaptation은 현재 범위 밖으로 둔다.
-8. 마지막에 확장을 넓힌다.
+이 프로젝트의 목표는:
+
+**내가 이해할 수 있고, 실제로 계속 쓰고 싶은 작업 흐름을 만드는 것**이다.
