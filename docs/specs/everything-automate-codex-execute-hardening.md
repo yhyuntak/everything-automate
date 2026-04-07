@@ -143,9 +143,9 @@ readiness check
 - [x] verify / decide 분기 예시를 문서화한다.
 - [x] retry bound와 escalation example을 만든다.
 - [x] scope drift in-bound / out-of-bound 예시를 만든다.
-- [ ] partial-progress summary example을 만든다.
-- [ ] `complete / cancelled / failed / interrupted` summary example을 만든다.
-- [ ] `ea_state.py`와 `execute` contract의 gap을 정리한다.
+- [x] partial-progress summary example을 만든다.
+- [x] `complete / cancelled / failed / interrupted` summary example을 만든다.
+- [x] `ea_state.py`와 `execute` contract의 gap을 정리한다.
 - [ ] global install된 skill 기준으로 사용성을 다시 본다.
 
 ## Ordered Work Checklist
@@ -156,9 +156,9 @@ readiness check
 
 - [x] `planning -> execute` handoff example read-through
 - [x] readiness failure example
-- [ ] `verify / decide` branch examples
-- [ ] retry bound / escalation example
-- [ ] scope drift in-bound / out-of-bound example
+- [x] `verify / decide` branch examples
+- [x] retry bound / escalation example
+- [x] scope drift in-bound / out-of-bound example
 
 이 단계를 먼저 하는 이유:
 
@@ -170,9 +170,9 @@ readiness check
 
 ### 2. Progress and Terminal Artifacts
 
-- [ ] partial-progress summary example
-- [ ] `complete / cancelled / failed / interrupted` summary examples
-- [ ] AC-level progress를 별도 artifact로 둘지 `ea_state.py`로 흡수할지 결정
+- [x] partial-progress summary example
+- [x] `complete / cancelled / failed / interrupted` summary examples
+- [x] AC-level progress를 별도 artifact로 둘지 `ea_state.py`로 흡수할지 결정
 
 이 단계의 목표:
 
@@ -218,9 +218,9 @@ M5 direction
   -> justified
 
 remaining open questions
-  -> verify / decide branch examples
-  -> progress artifact vs ea_state.py expansion
-  -> terminal summary shape
+  -> progress writer/runtime ownership
+  -> terminal summary trigger coverage beyond cancel
+  -> installed usability
 ```
 
 ### Example 1. `global-codex-setup-v0` handoff read-through
@@ -427,6 +427,218 @@ option B
 ```
 
 - 현재 `ea_state.py`만으로는 `execute` progress contract를 완전히 충족한다고 보기 어렵다.
+
+### Example 8. Partial Progress Snapshot
+
+현재 추천 v0 모델:
+
+```text
+loop-state.json
+  -> run-level state
+
+execute-progress.json
+  -> AC-level progress
+
+terminal-summary.json
+  -> final derived summary
+```
+
+partial-progress 예시:
+
+```json
+{
+  "schema_version": 1,
+  "task_id": "m5-progress-and-terminal-artifacts",
+  "run_id": "uuid",
+  "plan_path": ".everything-automate/plans/2026-04-07-m5-progress-and-terminal-artifacts.md",
+  "status": "in_progress",
+  "current_ac": {
+    "ac_id": "AC3",
+    "title": "Define partial-progress output"
+  },
+  "completed_acs": ["AC1", "AC2"],
+  "blocked_acs": [],
+  "failed_verification_acs": [],
+  "acs": [
+    {
+      "ac_id": "AC1",
+      "title": "Choose separate JSON progress artifact",
+      "status": "passed",
+      "retry_count": 0
+    },
+    {
+      "ac_id": "AC2",
+      "title": "Define minimum execute-progress schema",
+      "status": "passed",
+      "retry_count": 0
+    },
+    {
+      "ac_id": "AC3",
+      "title": "Define partial-progress output",
+      "status": "in_progress",
+      "retry_count": 1,
+      "latest_evidence": {
+        "kind": "doc-review",
+        "summary": "first draft reviewed, revision pending"
+      }
+    }
+  ],
+  "latest_evidence": {
+    "ac_id": "AC3",
+    "kind": "doc-review",
+    "summary": "first draft reviewed, revision pending"
+  },
+  "best_resume_point": "resume current AC from revise pass",
+  "updated_at": "2026-04-07T00:00:00Z"
+}
+```
+
+현재 판단:
+
+- partial-progress는 `loop-state.json`이 아니라 `execute-progress.json`에 남기는 것이 맞다.
+- `loop-state.json`은 여전히 큰 stage, terminal reason, resume metadata를 담당한다.
+
+### Example 9. `complete` Summary
+
+```json
+{
+  "schema_version": 1,
+  "task_id": "m5-progress-and-terminal-artifacts",
+  "run_id": "uuid",
+  "outcome": "complete",
+  "completed_acs": ["AC1", "AC2", "AC3", "AC4"],
+  "current_ac": null,
+  "latest_evidence": {
+    "ac_id": "AC4",
+    "kind": "doc-review",
+    "summary": "all required examples and schemas documented"
+  },
+  "remaining_open_risks": [],
+  "summary": "All required ACs completed with fresh evidence."
+}
+```
+
+### Example 10. `cancelled` Summary
+
+```json
+{
+  "schema_version": 1,
+  "task_id": "m5-progress-and-terminal-artifacts",
+  "run_id": "uuid",
+  "outcome": "cancelled",
+  "completed_acs": ["AC1", "AC2"],
+  "current_ac": {
+    "ac_id": "AC3",
+    "title": "Define partial-progress output"
+  },
+  "latest_evidence": {
+    "ac_id": "AC3",
+    "kind": "doc-review",
+    "summary": "draft example exists but user stopped before finalization"
+  },
+  "remaining_work": ["AC3", "AC4"],
+  "summary": "Run stopped by user before completion."
+}
+```
+
+### Example 11. `failed` Summary
+
+```json
+{
+  "schema_version": 1,
+  "task_id": "m5-progress-and-terminal-artifacts",
+  "run_id": "uuid",
+  "outcome": "failed",
+  "failed_ac": {
+    "ac_id": "AC3",
+    "title": "Define partial-progress output"
+  },
+  "failure_reason": "bounded retry exhausted",
+  "latest_evidence": {
+    "ac_id": "AC3",
+    "kind": "doc-review",
+    "summary": "schema contradictions remained after 3 materially similar retries"
+  },
+  "next_step_hint": "replan or external review",
+  "summary": "Local retry exhausted without a viable new approach."
+}
+```
+
+### Example 12. `suspended/interrupted` Summary
+
+```json
+{
+  "schema_version": 1,
+  "task_id": "m5-progress-and-terminal-artifacts",
+  "run_id": "uuid",
+  "outcome": "suspended",
+  "completed_acs": ["AC1", "AC2"],
+  "current_ac": {
+    "ac_id": "AC3",
+    "title": "Define partial-progress output"
+  },
+  "latest_evidence": {
+    "ac_id": "AC3",
+    "kind": "doc-review",
+    "summary": "current AC draft exists but verification is incomplete"
+  },
+  "best_resume_point": "resume current AC from verify",
+  "summary": "Run stopped without terminal completion or declared failure."
+}
+```
+
+### Progress Artifact Decision
+
+현재 v0 결정:
+
+```text
+run-level state
+  -> loop-state.json
+
+AC-level progress
+  -> execute-progress.json
+
+final outcome summary
+  -> terminal-summary.json
+```
+
+의미:
+
+- `ea_state.py`는 run-level state 전용으로 유지한다.
+- `execute-progress.json`이 `current_ac`, `completed_acs`, `blocked_acs`, `failed_verification_acs`, `latest_evidence`, `best_resume_point`를 담당한다.
+- `terminal-summary.json`은 final progress snapshot과 final run state를 바탕으로 만들어지는 파생 산출물이다.
+
+### Runtime Integration Note
+
+현재 구현 상태:
+
+- `runtime/ea_progress.py`가 추가되었다.
+- `runtime/ea_codex.py start`는 `execute-progress.json`을 초기화한다.
+- `runtime/ea_codex.py status`는 progress와 terminal summary를 함께 보여준다.
+- `runtime/ea_codex.py cancel`은 `ea_state.py`로 cancel을 기록한 뒤 `terminal-summary.json`을 쓴다.
+
+현재 검증된 흐름:
+
+```text
+start
+  -> loop-state init
+  -> execute-progress init
+
+status
+  -> handoff + state + progress 확인
+
+cancel
+  -> state cancelled
+  -> terminal summary written
+```
+
+아직 남은 범위:
+
+- `complete`
+- `failed`
+- `suspended/interrupted`
+
+이 세 outcome의 summary write trigger는 아직 helper contract 수준에 가깝고, caller wiring은 더 필요하다.
 
 ### Reference Cross-Check
 

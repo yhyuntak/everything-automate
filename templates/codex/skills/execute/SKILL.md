@@ -381,6 +381,91 @@ At minimum, keep clear track of:
 - failed-verification ACs
 - latest evidence used
 
+For v0, keep progress in a separate structured artifact rather than overloading run-level state.
+
+Recommended artifact split:
+
+```text
+.everything-automate/state/tasks/{task_id}/loop-state.json
+  -> run-level state only
+
+.everything-automate/state/tasks/{task_id}/execute-progress.json
+  -> AC-level progress
+
+.everything-automate/state/tasks/{task_id}/terminal-summary.json
+  -> final derived summary
+```
+
+### `execute-progress.json`
+
+Treat `execute-progress.json` as the canonical AC-progress artifact.
+
+Minimum top-level fields:
+
+- `schema_version`
+- `task_id`
+- `run_id`
+- `plan_path`
+- `status`
+- `current_ac`
+- `completed_acs`
+- `blocked_acs`
+- `failed_verification_acs`
+- `acs`
+- `latest_evidence`
+- `best_resume_point`
+- `updated_at`
+
+Minimum per-AC fields:
+
+- `ac_id`
+- `title`
+- `status`
+- `retry_count`
+- `latest_evidence`
+
+Artifact rules:
+
+- update `execute-progress.json` in place as the run advances
+- keep run lifecycle and terminal reason in `loop-state.json`
+- keep AC progress and evidence snapshots in `execute-progress.json`
+- keep a top-level cached `latest_evidence` pointer and the relevant per-AC evidence
+
+### Partial-Progress Output
+
+A partial-progress snapshot should make it obvious:
+
+- which AC is active now
+- which ACs are already complete
+- whether any AC is blocked or failed verification
+- what the latest evidence says
+- where the next resume point is
+
+Example shape:
+
+```json
+{
+  "schema_version": 1,
+  "task_id": "example-task",
+  "run_id": "uuid",
+  "plan_path": ".everything-automate/plans/example.md",
+  "status": "in_progress",
+  "current_ac": {
+    "ac_id": "AC3",
+    "title": "Define partial-progress output"
+  },
+  "completed_acs": ["AC1", "AC2"],
+  "blocked_acs": [],
+  "failed_verification_acs": [],
+  "latest_evidence": {
+    "ac_id": "AC3",
+    "kind": "doc-review",
+    "summary": "draft exists, final check pending"
+  },
+  "best_resume_point": "resume current AC from verify"
+}
+```
+
 ## End States
 
 ### `complete`
@@ -433,6 +518,19 @@ Interruption summary must include:
 - current AC
 - latest evidence state
 - best resume point
+
+For v0, write end-state output to `terminal-summary.json`.
+
+Rules:
+
+- `terminal-summary.json` is derived from the final progress snapshot and final run-level state
+- it is written only for:
+  - `complete`
+  - `cancelled`
+  - `failed`
+  - `suspended/interrupted`
+- it must not replace `loop-state.json`
+- it must not become a second live progress source during normal execution
 
 ## Constraints
 

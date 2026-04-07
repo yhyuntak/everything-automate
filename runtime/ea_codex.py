@@ -76,6 +76,14 @@ def state_file_for_task(workspace_root: Path, task_id: str) -> Path:
     return state_root(workspace_root) / "tasks" / task_id / "loop-state.json"
 
 
+def progress_file_for_task(workspace_root: Path, task_id: str) -> Path:
+    return state_root(workspace_root) / "tasks" / task_id / "execute-progress.json"
+
+
+def terminal_summary_file_for_task(workspace_root: Path, task_id: str) -> Path:
+    return state_root(workspace_root) / "tasks" / task_id / "terminal-summary.json"
+
+
 def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -109,6 +117,24 @@ def call_state_tool(arguments: list[str]) -> dict[str, Any]:
         return json.loads(result.stdout)
     except json.JSONDecodeError as exc:
         fail(f"ea_state.py returned invalid JSON ({exc})")
+
+
+def call_progress_tool(arguments: list[str], *, input_text: str | None = None) -> dict[str, Any]:
+    progress_tool = repo_root() / "runtime" / "ea_progress.py"
+    result = subprocess.run(
+        [sys.executable, str(progress_tool), *arguments],
+        input=input_text,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        message = result.stderr.strip() or result.stdout.strip() or "ea_progress.py failed"
+        fail(message, code=result.returncode)
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        fail(f"ea_progress.py returned invalid JSON ({exc})")
 
 
 def ensure_plan_exists(plan_path: Path) -> Path:
@@ -364,6 +390,22 @@ def prepare_run(
 
     run_id = init_result["run_id"]
     state_file = Path(init_result["state_file"])
+    progress_args = [
+        "init",
+        "--state-root",
+        str(state_root(workspace_root)),
+        "--task-id",
+        task_id,
+        "--run-id",
+        run_id,
+        "--plan-path",
+        str(plan_path),
+        "--status",
+        "pending",
+    ]
+    if force:
+        progress_args.append("--force")
+    progress_result = call_progress_tool(progress_args)
     action = "start" if mode == "start" else "ralph"
     run_dir = run_root(workspace_root, task_id, run_id)
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -402,6 +444,7 @@ def prepare_run(
             "launch_script": str(launch_script),
             "prepared_at": utc_now(),
             "prompt_file": str(instructions_file),
+            "progress_file": progress_result["progress_file"],
             "run_id": run_id,
             "state_file": str(state_file),
             "task_id": task_id,
@@ -425,6 +468,7 @@ def prepare_run(
             "mode": mode,
             "ok": True,
             "prompt_file": str(instructions_file),
+            "progress_file": progress_result["progress_file"],
             "run_id": run_id,
             "state_file": str(state_file),
             "task_id": task_id,
@@ -453,9 +497,11 @@ def show_status(*, workspace_root: Path, task_id: str) -> None:
         "current_run_file": str(current_run_file(workspace_root, task_id)),
         "handoff_file": str(handoff_file(workspace_root, task_id)),
         "ok": True,
+        "progress_file": str(progress_file_for_task(workspace_root, task_id)),
         "state_file": str(state_file),
         "task_dir": str(task_dir),
         "task_id": task_id,
+        "terminal_summary_file": str(terminal_summary_file_for_task(workspace_root, task_id)),
     }
     if handoff_file(workspace_root, task_id).exists():
         payload["handoff"] = read_json(handoff_file(workspace_root, task_id))
@@ -464,6 +510,10 @@ def show_status(*, workspace_root: Path, task_id: str) -> None:
     if state_file.exists():
         payload["state"] = read_json(state_file)
         payload["resume_check"] = call_state_tool(["resume-check", str(state_file)])
+    if progress_file_for_task(workspace_root, task_id).exists():
+        payload["progress"] = read_json(progress_file_for_task(workspace_root, task_id))
+    if terminal_summary_file_for_task(workspace_root, task_id).exists():
+        payload["terminal_summary"] = read_json(terminal_summary_file_for_task(workspace_root, task_id))
     dump_json(payload)
 
 
@@ -483,7 +533,24 @@ def cancel_run(*, workspace_root: Path, task_id: str, summary: str | None) -> No
     ]
     if summary:
         args.extend(["--summary", summary])
-    dump_json(call_state_tool(args))
+    state_result = call_state_tool(args)
+    payload: dict[str, Any] = {"ok": True, "state": state_result}
+    if progress_file_for_task(workspace_root, task_id).exists():
+        progress_args = [
+            "write-terminal-summary",
+            "--state-root",
+            str(state_root(workspace_root)),
+            "--task-id",
+            task_id,
+            "--outcome",
+            "cancelled",
+        ]
+        if summary:
+            progress_args.extend(["--summary", summary])
+        payload["terminal_summary"] = call_progress_tool(progress_args)
+    else:
+        payload["terminal_summary"] = {"ok": False, "reason": "progress_file_missing"}
+    dump_json(payload)
 
 
 def resume_run(
@@ -576,6 +643,7 @@ def resume_run(
             "launch_script": str(launch_script),
             "ok": True,
             "prompt_file": str(instructions_file),
+            "progress_file": str(progress_file_for_task(workspace_root, task_id)),
             "resume_from_stage": resume_info["resume_from_stage"],
             "run_id": run_id,
             "state_file": str(state_file),
