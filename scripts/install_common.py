@@ -10,19 +10,13 @@ import shutil
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES_ROOT = ROOT / "templates"
 
-AGENT_MODELS = {
-    "explorer": ("gpt-5.4-mini", "medium"),
-    "angel": ("gpt-5.4", "high"),
-    "plan-arch": ("gpt-5.4", "high"),
-    "plan-devil": ("gpt-5.4", "high"),
-}
-
-
 @dataclass(frozen=True)
 class AgentDefinition:
     name: str
     description: str
     prompt: str
+    model: str
+    model_reasoning_effort: str
 
 
 def parse_frontmatter(md_path: Path) -> tuple[dict[str, str], str]:
@@ -55,15 +49,21 @@ def ensure_symlink(src: Path, dst: Path) -> None:
     dst.symlink_to(src.resolve(), target_is_directory=src.is_dir())
 
 
-def render_agent_toml(name: str, description: str, prompt: str) -> str:
-    model, reasoning = AGENT_MODELS.get(name, ("gpt-5.4-mini", "medium"))
+def render_agent_toml(
+    name: str,
+    description: str,
+    prompt: str,
+    *,
+    model: str,
+    model_reasoning_effort: str,
+) -> str:
     escaped_prompt = prompt.replace('"""', '\\"""')
     return "\n".join(
         [
             f'name = "{name}"',
             f'description = "{description}"',
             f'model = "{model}"',
-            f'model_reasoning_effort = "{reasoning}"',
+            f'model_reasoning_effort = "{model_reasoning_effort}"',
             'sandbox_mode = "read-only"',
             'developer_instructions = """',
             escaped_prompt,
@@ -77,7 +77,15 @@ def load_agent_definition(agent_md: Path) -> AgentDefinition:
     metadata, body = parse_frontmatter(agent_md)
     name = metadata.get("name", agent_md.stem)
     description = metadata.get("description", f"{name} planning agent")
-    return AgentDefinition(name=name, description=description, prompt=body)
+    model = metadata.get("model", "gpt-5.4-mini")
+    model_reasoning_effort = metadata.get("model_reasoning_effort", "medium")
+    return AgentDefinition(
+        name=name,
+        description=description,
+        prompt=body,
+        model=model,
+        model_reasoning_effort=model_reasoning_effort,
+    )
 
 
 def iter_skill_dirs(provider_root: Path) -> list[Path]:

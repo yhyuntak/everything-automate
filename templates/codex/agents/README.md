@@ -9,4 +9,3 @@ Current planning roster:
 - `plan-devil.md`
 
 These agents support the current in-session planning workflow and are intentionally narrow in scope.
-`angel.md` may still exist as a helper prompt, but it is not part of the current core planning flow.

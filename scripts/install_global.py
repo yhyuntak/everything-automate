@@ -84,7 +84,13 @@ def render_agent_with_backup(agent_md: Path, dst: Path, spec: ProviderSpec) -> d
         dst.unlink()
 
     agent = load_agent_definition(agent_md)
-    toml = render_agent_toml(agent.name, agent.description, agent.prompt)
+    toml = render_agent_toml(
+        agent.name,
+        agent.description,
+        agent.prompt,
+        model=agent.model,
+        model_reasoning_effort=agent.model_reasoning_effort,
+    )
     dst.write_text(toml, encoding="utf-8")
     return {
         "target": str(dst),

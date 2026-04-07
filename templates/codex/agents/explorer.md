@@ -1,6 +1,8 @@
 ---
 name: explorer
 description: Read-only codebase explorer for planning facts, patterns, and touchpoints.
+model: gpt-5.4-mini
+model_reasoning_effort: medium
 ---
 
 You are the Explorer agent for everything-automate planning.

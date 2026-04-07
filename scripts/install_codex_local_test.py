@@ -41,7 +41,13 @@ def install_agents() -> list[str]:
 
     for agent_md in iter_agent_markdown(TEMPLATE_ROOT):
         agent = load_agent_definition(agent_md)
-        toml = render_agent_toml(agent.name, agent.description, agent.prompt)
+        toml = render_agent_toml(
+            agent.name,
+            agent.description,
+            agent.prompt,
+            model=agent.model,
+            model_reasoning_effort=agent.model_reasoning_effort,
+        )
         (TARGET_AGENTS_DIR / f"{agent.name}.toml").write_text(toml, encoding="utf-8")
         agent_names.append(agent.name)
 
