@@ -1,165 +1,246 @@
 ---
 name: planning
-description: Turn a clear request into a plan that `$execute` can follow.
-argument-hint: "[--direct|--consensus|--review] <task or spec>"
+description: Turn a clear direction into a file-based plan that `$execute` can follow.
+argument-hint: "<task, approved direction, or implementation request>"
 ---
 
 # planning
 
-Turn a user request into a plan that `$execute` can follow.
+Use this when the direction is clear enough and the user now wants execution planning.
 
 ## Purpose
 
-Planning is not implementation.
+`planning` is an execution-prep skill.
+
 Its job is to:
 
-- clarify intent
-- lock scope
-- define non-goals and decision boundaries
-- define the problem clearly before breaking work into steps
-- compare a few realistic directions when design choice matters
-- produce testable acceptance criteria
-- prepare a clear final block for `$execute`
+- turn a clear direction into a file-based plan
+- lock the task goal
+- lock scope and non-goals
+- lock the design direction at the right level
+- choose a test strategy
+- write a plan that `$execute` can follow without guessing
+
+`planning` is not:
+
+- brainstorming
+- implementation
+- code writing
+- a place to dump long code examples
+
+## Position In The Main Flow
+
+```text
+$brainstorming
+  -> direction becomes clear enough
+  -> $planning
+  -> $execute
+  -> $qa
+  -> commit
+```
+
+If the direction is still fuzzy, stop and go back to `$brainstorming`.
+
+## Use When
+
+Use `planning` when:
+
+- the user wants a real execution plan
+- a file-based plan would help
+- the work should move toward implementation
+- scope is clear enough to lock
+- the user needs ACs, TCs, and test strategy before coding
+
+## Do Not Use When
+
+Do **not** use `planning` when:
+
+- the user is still choosing between broad directions
+- the request is still mostly idea shaping
+- the user only wants comparison or thought cleanup
+- the user already has an approved plan and wants implementation
+
+If any of the above are true, move to `$brainstorming` or `$execute` instead.
 
 ## Interaction Policy
 
-Planning is interactive only at two points:
+`planning` is mostly non-interactive.
 
-1. clarification when the request is still unclear after the first context check and exploration
-2. final approval
+Ask the user questions only when needed.
 
-Everything else should run as a fixed planning flow.
+That usually means:
 
-```text
-interactive
-  -> clarification when needed
-  -> final approval
+- the goal is still unclear
+- scope is still unclear
+- a boundary matters and the repo cannot answer it
 
-non-interactive
-  -> quick context check
-  -> explore
-  -> define the problem
-  -> draft
-  -> angel
-  -> architect
-  -> devil
-  -> self-check
-  -> revise
-```
+Do not keep asking for confirmation in the middle once the plan is clear enough to write.
 
-## Default Flow
+## Core Flow
 
 ```text
-mode detection
+input
   -> quick context check
-  -> explore
-  -> decide if clarification is needed
-  -> define the problem
-  -> draft plan
-  -> angel review
-  -> revise
-  -> architect review
-  -> revise
-  -> devil validation
-  -> revise
-  -> plan self-check
+  -> explore repo if needed
+  -> clarify if still unclear
+  -> lock task goal
+  -> lock scope / non-goals
+  -> lock design direction
+  -> choose test strategy
+  -> write Task
+     -> write ACs
+        -> attach TCs
+  -> use plan-arch if needed
+  -> revise if needed
+  -> use plan-devil if needed
+  -> revise if needed
+  -> write execute handoff
   -> user approval
-  -> final handoff
 ```
 
-## Modes
+## Step Meanings
 
-| Mode | Trigger | Behavior |
-| --- | --- | --- |
-| `direct` | request already concrete | still checks for missing context, but may pass without user questions |
-| `interview` | broad or vague request | clarification is expected before planning can continue |
-| `consensus` | risky, high-impact, or architecture-heavy work | require architect then devil review and make the reason for the choice stronger |
-| `review` | existing plan needs evaluation | review without rewriting from scratch unless critical gaps require it |
+### 1. Quick Context Check
 
-## Rules
+Start by restating:
 
-- Planning always checks whether clarification is needed.
-  - This does **not** mean it always asks the user questions.
-  - It means it always checks whether important ambiguity remains after the first context check and exploration.
-- Explore repo facts before asking the user about them.
-- Ask one question at a time only when clarification is still needed.
-- Do not implement during planning.
-- Do not break work into implementation order until the problem is defined clearly enough.
-- Do not hand off to execution until non-goals and decision boundaries are explicit.
-- Keep the final plan small enough to execute, but concrete enough to verify.
-- Do not keep asking the user for intermediate confirmation once ambiguity is low enough.
-- Run the planning stages in order and absorb each stage result into the draft before moving on.
-- Keep planning light by default, but be stricter for high-risk work.
+- what the task is
+- what outcome is wanted
+- what is already known
+- what is still unknown
 
-## Stage Order
+Keep this short.
 
-Planning is a staged workflow, not a single draft-and-dump step.
+### 2. Explore Repo If Needed
+
+Use `explorer` only when repo facts matter.
+
+Use it to find:
+
+- current patterns
+- likely files
+- likely tests
+- important constraints already in the codebase
+
+Do not ask the user for repo facts that the repo can tell you.
+
+### 3. Clarify If Still Unclear
+
+Ask the user only if important ambiguity remains after the context check and any needed exploration.
+
+Ask one strong question at a time.
+
+### 4. Lock Task Goal
+
+Write down what this task should change when it is done.
+
+This is the "what becomes true after the work" section.
+
+### 5. Lock Scope And Non-Goals
+
+Make clear:
+
+- what is in scope now
+- what is out of scope now
+- what boundaries `execute` should not cross silently
+
+### 6. Lock Design Direction
+
+Stay at the right level.
+
+Planning should describe:
+
+- the main design direction
+- the parts of the system that matter
+- the pattern or shape to follow
+- what should stay stable
+
+Planning should **not** turn into long code examples or detailed implementation drafts.
+
+### 7. Choose Test Strategy
+
+Every real execution plan needs a test strategy.
+
+Choose the best fit for the task:
+
+- `docs-only`
+- `unit-first`
+- `integration-first`
+- `backend verification`
+- `web E2E`
+- `mixed`
+
+The chosen test strategy should make sense for the kind of project and change.
+
+### 8. Write `Task -> AC -> TC`
+
+This is the backbone of the plan.
 
 ```text
-request
-  -> mode detection
-  -> quick context check
-  -> explore
-  -> decide if clarification is needed
-  -> define the problem
-  -> draft
-  -> angel
-  -> revise
-  -> architect
-  -> revise
-  -> devil
-  -> revise
-  -> self-check
-  -> approval
-  -> handoff
+Task
+  -> AC1
+     -> TC1
+     -> TC2
+  -> AC2
+     -> TC1
+  -> AC3
+     -> TC1
+     -> TC2
 ```
 
-Stage rules:
+Meaning:
 
-- `quick context check` runs before any user questioning.
-- `explore` runs before the first draft when repo facts matter.
-- `clarification` decides whether user interaction is still necessary after the first context check and exploration.
-- `define the problem` locks intent, outcome, and scope boundaries before breaking work into steps.
-- `angel` expands the first real draft.
-- `architect` reviews the revised draft for structure and execution shape.
-- `devil` gives the final critical verdict on the revised draft.
-- `self-check` runs after the final revise pass and before user approval.
-- Each stage result must be reflected in the draft before the next stage begins.
-- `devil` may return `approve`, `iterate`, or `reject`.
+- `Task`
+  the whole piece of work
+- `AC`
+  what must be true for that part to count as done
+- `TC`
+  how that AC will be tested or checked
 
-Verdict handling:
+Keep ACs concrete.
+Keep TCs tied to their ACs.
 
-```text
-devil approve
-  -> self-check
-  -> user approval
+### 9. Use `plan-arch` If Needed
 
-devil iterate
-  -> revise draft
-  -> re-run only the stages still needed
+Use `plan-arch` when:
 
-devil reject
-  -> go back to draft or clarification depending on the failure
-```
+- the design direction has real tradeoffs
+- the task shape is big enough that structure matters
+- the `Task -> AC -> TC` structure may be weak
+- the test strategy may not fit the work
 
-## Required Output
+`plan-arch` is not required for every plan.
 
-The plan must include:
+### 10. Use `plan-devil` If Needed
 
-- requirements summary
+Use `plan-devil` when:
+
+- the risk is high
+- the ACs still feel weak
+- the TCs feel weak or missing
+- the handoff may force `$execute` to guess
+- the chosen test strategy feels too weak
+
+`plan-devil` is also not required for every plan.
+
+### 11. Write Execute Handoff
+
+End the plan with a simple block that `$execute` can read.
+
+## Required Plan Output
+
+Every plan should contain:
+
+- task summary
 - desired outcome
 - in-scope
 - non-goals
-- decision boundaries
-- clear problem summary
-- what matters most for the choice
-- options considered
-- recommended direction
-- acceptance criteria
-- verification steps
-- implementation order
-- risks and how to reduce them
-- final handoff block
+- design direction
+- test strategy
+- one task with ACs and TCs
+- execution order
+- open risks
+- execute handoff
 
 ## Plan Artifact Path
 
@@ -167,98 +248,61 @@ During local Everything Automate development, write plan artifacts to:
 
 - `.everything-automate/plans/{YYYY-MM-DD}-{slug}.md`
 
-If a caller already provides a plan path, use that path instead of inventing a new one.
+If a caller already provides a plan path, use that path.
 
-## Handoff Block
+## Execute Handoff
 
-Every approved plan must end with a handoff block containing:
+Keep the handoff simple and useful.
+
+Every approved plan must end with:
 
 - `task_id`
 - `plan_path`
 - `approval_state`
 - `execution_unit`
-- `recommended_mode`
-- `recommended_agents`
-- `verification_lane`
+- `test_strategy`
 - `open_risks`
 
-## Agent Usage
+Default `execution_unit` is `AC`.
 
-- `explorer`
-  collect repo facts, patterns, and touchpoints before the draft
-- `angel`
-  add missing work items, edge cases, and verification gaps after the draft
-- `architect`
-  check structure, alternatives, and execution shape after angel revisions
-- `devil`
-  attack unclear parts, weak verification, and hidden risk after architect revisions
+## Output Shape
 
-## Stage Outputs
+Use a structure like this:
 
-- `quick context check`
-  - task statement
-  - desired outcome
-  - known facts
-  - constraints
-  - unknowns
-  - likely touchpoints
-- `clarification`
-  - clarified task statement or confirmation that no user question was required
-  - desired outcome
-  - in-scope
-  - non-goals
-  - decision boundaries
-- `explorer`
-  - relevant files
-  - current pattern
-  - likely touchpoints
-  - open unknowns
-- `define the problem`
-  - problem statement
-  - why now
-  - success definition
-  - what matters most for the choice
-  - options considered
-  - recommended direction
-- `angel`
-  - missing work items
-  - missing validation points
-  - edge cases
-  - optional improvements
-- `architect`
-  - recommended approach
-  - alternatives considered
-  - tradeoffs
-  - execution recommendation
-  - architecture risks
-- `devil`
-  - verdict: `approve | iterate | reject`
-  - critical gaps
-  - ambiguous points
-  - verification failures
-  - required revisions
-- `self-check`
-  - placeholder scan
-  - AC/testability check
-  - handoff completeness check
-  - implementation-order sanity check
-  - contradiction check
+```text
+Task Summary
+Desired Outcome
+In Scope
+Non-Goals
+Design Direction
+Test Strategy
+Task
+  -> ACs
+     -> TCs
+Execution Order
+Open Risks
+Execute Handoff
+```
 
-## Mode Selection Guidance
+## Rules
 
-- If the request names files, symbols, or concrete behavior, prefer `direct`.
-- If the request uses vague verbs like "improve", "refactor", or "make it better", prefer `interview`.
-- If the request touches auth, security, migration, public API breakage, or other high-risk areas, prefer `consensus`.
+- Do not brainstorm inside `planning`.
+- Do not implement inside `planning`.
+- Do not dump long code-level examples.
+- Do not leave test strategy implicit.
+- Do not leave ACs without TCs.
+- Do not hand off to `$execute` if the plan still forces guessing.
+- Use simple English.
 
 ## Completion
 
-Planning is complete only when:
+`planning` is complete only when:
 
-- the plan is execution-ready
-- user approval is explicit when needed
-- the handoff block is present
-- the plan can be handed off to later execution work without reopening basic scope questions
-- all required subagent review stages have been incorporated into the final draft
-- the problem is defined clearly enough that task decomposition is not guessing at intent
-- what matters most for the choice and the recommended direction are visible when design choice mattered
-- self-check passed with no blocking placeholder, contradiction, or handoff gap
+- the direction is clear enough for execution
+- the plan file exists
+- scope and non-goals are visible
+- design direction is clear enough
+- test strategy is explicit
+- `Task -> AC -> TC` is present and usable
+- the execute handoff is present
+- the user approves the plan when approval is needed

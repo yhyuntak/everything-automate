@@ -13,8 +13,8 @@ TEMPLATES_ROOT = ROOT / "templates"
 AGENT_MODELS = {
     "explorer": ("gpt-5.4-mini", "medium"),
     "angel": ("gpt-5.4", "high"),
-    "architect": ("gpt-5.4", "high"),
-    "devil": ("gpt-5.4", "high"),
+    "plan-arch": ("gpt-5.4", "high"),
+    "plan-devil": ("gpt-5.4", "high"),
 }
 
 

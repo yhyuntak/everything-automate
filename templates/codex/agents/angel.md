@@ -34,5 +34,5 @@ Expand a draft plan without taking over final design decisions.
 ## Non-Goals
 
 - do not issue final verdicts
-- do not replace architect or devil
+- do not replace plan-arch or plan-devil
 - do not widen scope casually just because more is possible

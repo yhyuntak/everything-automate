@@ -64,9 +64,8 @@ Installed packaging may later hide or replace it behind in-session skill wiring.
 Current planning-agent roster:
 
 - `explorer`
-- `angel`
-- `architect`
-- `devil`
+- `plan-arch`
+- `plan-devil`
 
 Current note:
 
