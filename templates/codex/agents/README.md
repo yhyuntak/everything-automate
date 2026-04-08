@@ -7,5 +7,6 @@ Current planning roster:
 - `explorer.md`
 - `plan-arch.md`
 - `plan-devil.md`
+- `qa-reviewer.md`
 
-These agents support the current in-session planning workflow and are intentionally narrow in scope.
+These agents support the current in-session workflow and are intentionally narrow in scope.

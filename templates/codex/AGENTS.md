@@ -15,6 +15,7 @@ inside Codex
   -> $brainstorming
   -> $planning
   -> $execute
+  -> $qa
 
 under the hood
   -> handoff
@@ -53,6 +54,7 @@ Primary in-session workflow surface:
 - `$brainstorming`
 - `$planning`
 - `$execute`
+- `$qa`
 
 Current internal support surface in this source repo:
 
@@ -66,10 +68,12 @@ Current planning-agent roster:
 - `explorer`
 - `plan-arch`
 - `plan-devil`
+- `qa-reviewer`
 
 Current note:
 
 - `$brainstorming` is the idea-shaping surface before planning.
 - `$planning` is the execution-planning surface after direction is clear enough.
 - `$execute` is the TC-first execution surface after an approved planning handoff and before `$qa`.
+- `$qa` is the final cold-review gate before `commit`.
 - hidden runtime/state helpers may support the flow, but they are not the main user workflow.
