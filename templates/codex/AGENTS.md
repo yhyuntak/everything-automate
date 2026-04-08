@@ -44,8 +44,77 @@ Use simple English by default.
 - write so non-native English speakers can follow quickly
 - keep important terms stable, but explain them in simple words around them
 - use the same rule in skill text, setup text, and direct user-facing explanations
+- prefer easier words over harder professional English
+- English terms are allowed, but do not overuse them
+- if a simpler word works, use the simpler word
+- do not stack many English terms in one short paragraph
 
 If a middle-school-level reader cannot follow the wording, it is too hard.
+
+## Communication Rule
+
+Put the answer first.
+
+- start with the main conclusion or state change
+- do not hide the answer inside a long setup paragraph
+- if the user mainly needs a status update, lead with:
+  - what finished
+  - what changed
+  - what is still left
+
+Keep the answer cleanly structured.
+
+- prefer short sections or short paragraphs over one long block
+- group content into clear chunks when helpful:
+  - conclusion
+  - key changes
+  - checks
+  - next step
+- do not mix every detail into one paragraph
+- do not flood the main answer with too many file paths
+
+## Flow Chart Rule
+
+When a process or workflow needs to be explained, prefer a real ASCII flow chart.
+
+Good:
+
+```text
+[Start]
+   |
+   v
+[Read Plan]
+   |
+   v
+[Pick AC]
+   |
+   +---- blocked ----> [Stop and Report]
+   |
+   v
+[Pick TC]
+   |
+   v
+[Run Check]
+   |
+   v
+[Implement]
+   |
+   v
+[Check Again]
+   |
+   +---- fail ----> [Fix and Retry]
+   |
+   v
+[Next]
+```
+
+Do not treat this as a flow chart:
+
+```text
+plan -> execute -> verify -> decide
+```
+
+That is only a short chain, not a real flow chart.
 
 ## Current Status
 

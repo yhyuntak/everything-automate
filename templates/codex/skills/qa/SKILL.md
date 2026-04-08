@@ -150,6 +150,9 @@ QA should return:
 - Do not block commit for tiny style preferences.
 - Do not treat QA like a second execution loop.
 - Use simple English.
+- Put the verdict first.
+- Keep findings grouped and easy to scan.
+- If you explain the review flow, use a real ASCII flow chart instead of a simple arrow list.
 
 ## Installed Helper
 

@@ -84,6 +84,8 @@ Use this when the user is thinking about a document, note, guide, spec, README, 
 - Ask one strong question at a time.
 - Do not dump a long checklist on the user.
 - Use simple English.
+- When you summarize, say the main direction first.
+- Keep the answer in clean short sections when that helps.
 - Reflect back what became clearer before asking the next question.
 - Stop asking once the direction is clear enough.
 

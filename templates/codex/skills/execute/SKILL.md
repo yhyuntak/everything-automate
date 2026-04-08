@@ -284,6 +284,9 @@ task complete
 - Do not treat "looks done" as done.
 - Do not silently widen scope.
 - Do not skip TC thinking just because strict TDD is hard.
+- When you report progress or completion, say the result first.
+- Keep updates clean and easy to scan.
+- If you explain the loop, use a real ASCII flow chart instead of a simple arrow list.
 
 ## Completion
 

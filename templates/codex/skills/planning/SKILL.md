@@ -293,6 +293,9 @@ Execute Handoff
 - Do not leave ACs without TCs.
 - Do not hand off to `$execute` if the plan still forces guessing.
 - Use simple English.
+- Put the main planning conclusion first when reporting the result.
+- Keep plan explanations clean and easy to scan.
+- If you explain a flow, use a real ASCII flow chart instead of a simple arrow list.
 
 ## Completion
 
