@@ -8,6 +8,9 @@ argument-hint: "[plan path, execute result, or ready-for-review task]"
 
 Use this after `$execute` and before `commit`.
 
+`qa` may be entered automatically after a normal successful `$execute`.
+It may also be run again explicitly when a rerun is needed.
+
 ## Purpose
 
 `qa` is the final review gate before commit.
@@ -15,7 +18,7 @@ Use this after `$execute` and before `commit`.
 Its job is to:
 
 - review finished work with fresh eyes
-- catch important code, test, risk, and structure problems
+- catch important code, test, behavior, and contract problems
 - decide whether the work is ready for commit
 - send the work back for fixes when needed
 
@@ -63,9 +66,10 @@ execute result
   -> prepare QA handoff packet
   -> spawn cold qa-reviewer
   -> collect findings
+  -> main LLM judges findings
   -> decide
      -> pass
-     -> fix and rerun qa
+     -> fix and return to execute
      -> return to planning only if truly needed
 ```
 
@@ -92,6 +96,11 @@ Prepare a focused packet with:
 - short plan summary
 - changed files or diff
 - test or check results
+- behavior goal
+- LLM reads or decision inputs
+- LLM-owned decisions
+- script-owned validation
+- contract changes
 - open risks
 
 This packet is the review input.
@@ -101,6 +110,8 @@ Use the installed helper in this skill:
 - `scripts/build_handoff.py`
 
 Build the packet before spawning the cold reviewer.
+
+The helper should fail if the packet is missing the basics needed for a real review.
 
 ## Cold Reviewer Rule
 
@@ -114,16 +125,42 @@ Build the packet before spawning the cold reviewer.
 
 ## Reviewer Focus
 
-The reviewer should check:
+The reviewer should check two lenses:
 
-- code quality
-- architecture fit
-- security or risk smells
-- test quality
-- mismatch with the intended goal
+- code lens
+  - code quality
+  - architecture fit
+  - security or risk smells
+  - test quality
+- behavior and contract lens
+  - mismatch with the intended goal
+  - whether the LLM will see the right inputs
+  - whether judgment ownership stays with the LLM where it should
+  - whether scripts only validate and persist state instead of deciding behavior
 
 Focus on important problems.
 Do not nitpick style.
+
+## QA Judgment
+
+The cold reviewer finds problems.
+
+The main LLM running `qa` must still judge those findings.
+
+That means:
+
+- decide which findings are true blockers
+- separate real defects from weaker concerns
+- judge code defects
+- judge behavior-shaping defects
+- judge contract and ownership defects
+- decide whether the work should:
+  - `pass`
+  - `fix`
+  - rarely return to `$planning`
+
+`qa` is not only a reviewer call.
+It is the final review-and-judgment stage before commit.
 
 ## Verdicts
 
@@ -149,6 +186,8 @@ QA should return:
 - Do not reopen planning casually.
 - Do not block commit for tiny style preferences.
 - Do not treat QA like a second execution loop.
+- After a normal successful `$execute`, continue into `$qa` in the same LLM-led workflow when the review inputs are ready.
+- Do not describe this as a runtime-enforced script transition in this version.
 - Use simple English.
 - Put the verdict first.
 - Keep findings grouped and easy to scan.

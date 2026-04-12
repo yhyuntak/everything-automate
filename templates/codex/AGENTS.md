@@ -144,5 +144,6 @@ Current note:
 - `$brainstorming` is the idea-shaping surface before planning.
 - `$planning` is the execution-planning surface after direction is clear enough.
 - `$execute` is the TC-first execution surface after an approved planning handoff and before `$qa`.
-- `$qa` is the final cold-review gate before `commit`.
+- `$execute` normally continues into `$qa` before `commit` when the work is ready for review.
+- `$qa` is the final review-and-judgment gate before `commit`.
 - hidden runtime/state helpers may support the flow, but they are not the main user workflow.

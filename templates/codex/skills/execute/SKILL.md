@@ -16,11 +16,14 @@ Its job is to:
 
 - read an approved plan
 - turn `Task -> AC -> TC` into a working checklist
+- let the main LLM act as the controller for the loop
+- use a worker for bounded implementation work
+- use an advisor only for hard execution moments
 - move through the task one AC at a time
 - use TC-first work when possible
 - use the earliest valid check first when strict test-first is not possible
 - keep progress visible
-- finish the task and hand off to `$qa`
+- finish execution and continue into `$qa` when review inputs are ready
 
 ## Position In The Main Flow
 
@@ -98,24 +101,29 @@ If the entry check fails:
 approved plan
   -> entry check
   -> make execution checklist
-  -> pick next AC
-  -> pick next TC
+  -> controller picks next AC
+  -> controller picks next TC
   -> choose TC type
      -> automated
      -> manual
      -> doc
      -> config
   -> run the earliest valid check first
-  -> implement
-  -> rerun the TC
-  -> decide
+  -> controller decides
+     -> direct small work
+     -> worker
+  -> worker reports result
+  -> controller decides
      -> pass
-     -> fail
+     -> retry directly
+     -> ask advisor
      -> blocked
      -> scope_drift
   -> repeat
   -> when all ACs pass
-     -> move to $qa
+     -> QA entry gate
+        -> continue into $qa in the same workflow
+        -> or stay in execute if review inputs are still missing
 ```
 
 ## Step Meanings
@@ -176,6 +184,38 @@ Use the best fit:
 - `config`
   - a config, parse, startup, or smoke check
 
+## Controller, Worker, Advisor
+
+`execute` uses one owner for the loop.
+
+That owner is the main LLM running `$execute`.
+
+Treat that main LLM as the `controller`.
+
+The roles are:
+
+- `controller`
+  - read the plan
+  - pick AC and TC
+  - decide whether direct work is enough
+  - delegate bounded implementation work to a worker
+  - decide whether advisor help is needed
+  - decide whether to retry, stop, or return to `$planning`
+- `worker`
+  - read the code for the active AC and TC
+  - make bounded changes
+  - run checks
+  - report what happened clearly
+- `advisor`
+  - diagnose a hard execution moment
+  - compare options
+  - recommend a path and next steps
+
+Important rule:
+
+- the worker does **not** call the advisor directly
+- the controller owns advisor use
+
 ## TC-First Rule
 
 When possible, use TC-first work.
@@ -217,7 +257,8 @@ After rerunning the current TC, decide:
   - mark the TC done
   - if all TCs in the AC pass, mark the AC done
 - `fail`
-  - fix and retry inside the current AC
+  - retry directly if the next move is still clear
+  - use the advisor if the execution path is no longer clear
 - `blocked`
   - stop and report the blocker clearly
 - `scope_drift`
@@ -227,6 +268,20 @@ Record the result with:
 
 - `scripts/checklist.py tc-result`
 
+## Advisor Trigger Rules
+
+Do not call the advisor for every failure.
+
+Use the advisor when the controller sees one of these:
+
+- the same TC fails again and the next move is no longer clear
+- execution reaches a real design fork
+- the likely fix crosses the approved plan boundary
+- the worker report shows repeated effort with weak progress
+- the task is near completion and needs one last risk pass before `$qa`
+
+If the next step is still obvious, retry directly first.
+
 ## Retry Rules
 
 Retry is bounded.
@@ -235,6 +290,7 @@ Per TC:
 
 - allow up to 3 fix-and-retry cycles
 - if the same failure keeps coming back without a meaningfully new approach, stop retrying
+- if a retry is no longer clear, switch to an advisor handoff instead of guessing
 - if the plan itself is too weak, return to `$planning`
 
 Do not loop forever.
@@ -258,24 +314,114 @@ At minimum, keep track of:
 
 This is what makes resume and restart understandable.
 
+## Artifact Policy
+
+Use a hybrid rule for execution context:
+
+- keep short local retries in memory
+- write files only at important execution boundaries
+
+In v1, the important boundaries are:
+
+- durable worker report
+- advisor handoff
+- controller retry packet
+- checklist progress
+
+Do not dump the full conversation into these files.
+
+Keep them short and task-bound.
+
+The latest durable packet files live under the task state root.
+
+The main files are:
+
+- `worker-report.json`
+- `advisor-handoff.json`
+- `retry-packet.json`
+- `execute-progress.json`
+
+Use `worker-report.json` for the latest durable worker boundary:
+
+- summary
+- what_tried
+- candidate_next_steps
+- optional files_touched
+- optional checks_run
+- optional failure_or_blocker
+
+Use `advisor-handoff.json` only when the controller calls the advisor:
+
+- open_question
+- recent_attempts
+- candidate_options
+- optional relevant_files
+- optional failing_check
+- optional worker_report_ref
+
+Use `retry-packet.json` after the controller reads the advisor result and decides the next move:
+
+- controller_decision
+- recommended_path
+- next_steps
+- optional advisor_summary
+- optional risks_to_watch
+- optional advisor_handoff_ref
+
+## QA Entry Gate
+
+When all ACs are complete, do not stop at "implementation done".
+
+Check whether QA can start now.
+
+Normal execute completion should only move forward when:
+
+- changed files exist
+- test or check results exist
+- a focused QA handoff can be built
+
+If those are true:
+
+- build the QA handoff with `qa/scripts/build_handoff.py`
+- continue into `$qa` in the same LLM-led workflow
+
+If those are not true:
+
+- stay in `execute`
+- say clearly what is still missing before QA
+
 ## Installed Helper
 
 This skill ships its own helper script:
 
 - `scripts/checklist.py`
 
+Use it for:
+
+- `execute-start`
+- `ac-start`
+- `tc-start`
+- `tc-result`
+- `ac-complete`
+- `worker-report`
+- `advisor-handoff`
+- `retry-packet`
+
 Do not depend on a repo-only runtime helper for live checklist updates.
 
 ## End Of Execute
 
-When all ACs are complete:
+When all ACs are complete and QA entry conditions are satisfied:
 
 ```text
 task complete
-  -> move to $qa
+  -> build QA handoff
+  -> enter $qa
 ```
 
 `execute` does not go straight to commit.
+After a normal successful execute run, the main LLM should continue into `$qa` without a separate user-side command.
+This is a skill-level workflow rule in this version, not a runtime-enforced script handoff.
 
 ## Constraints
 
@@ -283,6 +429,8 @@ task complete
 - Do not replan inside `execute`.
 - Do not treat "looks done" as done.
 - Do not silently widen scope.
+- Do not let the worker own the whole loop.
+- Do not let the worker call the advisor directly.
 - Do not skip TC thinking just because strict TDD is hard.
 - When you report progress or completion, say the result first.
 - Keep updates clean and easy to scan.
@@ -296,4 +444,4 @@ task complete
 - all required ACs are complete
 - all required TCs are resolved
 - progress is visible enough to understand what happened
-- the next step is clearly `$qa`
+- the next step is direct `$qa` in the same workflow or an explicit QA rerun when needed

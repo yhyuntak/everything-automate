@@ -35,6 +35,22 @@ def progress_file(state_root: Path, task_id: str) -> Path:
     return state_root / "tasks" / task_id / "execute-progress.json"
 
 
+def task_dir(state_root: Path, task_id: str) -> Path:
+    return state_root / "tasks" / task_id
+
+
+def worker_report_file(state_root: Path, task_id: str) -> Path:
+    return task_dir(state_root, task_id) / "worker-report.json"
+
+
+def advisor_handoff_file(state_root: Path, task_id: str) -> Path:
+    return task_dir(state_root, task_id) / "advisor-handoff.json"
+
+
+def retry_packet_file(state_root: Path, task_id: str) -> Path:
+    return task_dir(state_root, task_id) / "retry-packet.json"
+
+
 def read_json(path: Path) -> dict[str, Any]:
     if not path.exists():
         fail(f"json file not found: {path}")
@@ -71,6 +87,10 @@ def write_progress(path: Path, payload: dict[str, Any]) -> None:
     write_json(path, payload)
 
 
+def require_progress(state_root: Path, task_id: str) -> dict[str, Any]:
+    return read_json(progress_file(state_root, task_id))
+
+
 def find_ac(progress: dict[str, Any], ac_id: str) -> dict[str, Any]:
     for ac in progress.get("acs", []):
         if ac.get("ac_id") == ac_id:
@@ -83,6 +103,14 @@ def find_tc(ac: dict[str, Any], tc_id: str) -> dict[str, Any]:
         if tc.get("tc_id") == tc_id:
             return tc
     fail(f"tc not found in AC {ac.get('ac_id')}: {tc_id}")
+
+
+def ac_ref(ac: dict[str, Any]) -> dict[str, Any]:
+    return {"ac_id": ac["ac_id"], "title": ac["title"]}
+
+
+def tc_ref(tc: dict[str, Any]) -> dict[str, Any]:
+    return {"tc_id": tc["tc_id"], "title": tc["title"], "type": tc.get("type", "automated")}
 
 
 def checklist_from_payload(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -128,6 +156,85 @@ def checklist_from_payload(payload: dict[str, Any]) -> list[dict[str, Any]]:
             }
         )
     return normalized
+
+
+def require_string(payload: dict[str, Any], key: str) -> str:
+    value = payload.get(key)
+    if not isinstance(value, str) or not value.strip():
+        fail(f"payload field '{key}' must be a non-empty string")
+    return value.strip()
+
+
+def require_string_list(payload: dict[str, Any], key: str) -> list[str]:
+    value = payload.get(key)
+    if not isinstance(value, list) or not value:
+        fail(f"payload field '{key}' must be a non-empty list")
+    normalized: list[str] = []
+    for item in value:
+        if not isinstance(item, str) or not item.strip():
+            fail(f"payload field '{key}' must contain only non-empty strings")
+        normalized.append(item.strip())
+    return normalized
+
+
+def optional_string_list(payload: dict[str, Any], key: str) -> list[str] | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, list):
+        fail(f"payload field '{key}' must be a list when present")
+    normalized: list[str] = []
+    for item in value:
+        if not isinstance(item, str) or not item.strip():
+            fail(f"payload field '{key}' must contain only non-empty strings")
+        normalized.append(item.strip())
+    return normalized
+
+
+def require_live_context(
+    *,
+    progress: dict[str, Any],
+    ac_id: str | None,
+    tc_id: str | None,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    current_ac_raw = progress.get("current_ac")
+    if not isinstance(current_ac_raw, dict):
+        fail("live current_ac not found in progress")
+
+    current_ac_id = current_ac_raw.get("ac_id")
+    if not isinstance(current_ac_id, str) or not current_ac_id.strip():
+        fail("live current_ac is missing ac_id")
+
+    ac = find_ac(progress, current_ac_id)
+    if ac_id and ac_id != current_ac_id:
+        fail(f"ac_id does not match live current_ac: {ac_id}")
+
+    current_tc_raw = progress.get("current_tc")
+    if current_tc_raw is None:
+        if tc_id:
+            fail("live current_tc not found in progress")
+        return ac_ref(ac), None
+
+    if not isinstance(current_tc_raw, dict):
+        fail("live current_tc is not a valid object")
+
+    current_tc_id = current_tc_raw.get("tc_id")
+    if not isinstance(current_tc_id, str) or not current_tc_id.strip():
+        fail("live current_tc is missing tc_id")
+
+    tc = find_tc(ac, current_tc_id)
+    if tc_id and tc_id != current_tc_id:
+        fail(f"tc_id does not match live current_tc: {tc_id}")
+
+    return ac_ref(ac), tc_ref(tc)
+
+
+def write_packet(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload["updated_at"] = utc_now()
+    payload.setdefault("schema_version", SCHEMA_VERSION)
+    payload.setdefault("writer", "execute/scripts/checklist.py")
+    write_json(path, payload)
 
 
 def execute_start_cmd(args: argparse.Namespace) -> None:
@@ -246,6 +353,112 @@ def ac_complete_cmd(args: argparse.Namespace) -> None:
     dump_json({"ok": True, "task_id": args.task_id, "ac_id": args.ac_id})
 
 
+def worker_report_cmd(args: argparse.Namespace) -> None:
+    state_root = parse_state_root(args.state_root)
+    payload = read_stdin_json(required=True)
+    progress = require_progress(state_root, args.task_id)
+    current_ac, current_tc = require_live_context(
+        progress=progress,
+        ac_id=args.ac_id,
+        tc_id=args.tc_id,
+    )
+    packet = {
+        "kind": "worker_report",
+        "task_id": args.task_id,
+        "current_ac": current_ac,
+        "current_tc": current_tc,
+        "summary": require_string(payload, "summary"),
+        "what_tried": require_string_list(payload, "what_tried"),
+        "candidate_next_steps": require_string_list(payload, "candidate_next_steps"),
+    }
+    files_touched = optional_string_list(payload, "files_touched")
+    if files_touched is not None:
+        packet["files_touched"] = files_touched
+    checks_run = optional_string_list(payload, "checks_run")
+    if checks_run is not None:
+        packet["checks_run"] = checks_run
+    failure_or_blocker = payload.get("failure_or_blocker")
+    if failure_or_blocker is not None:
+        if not isinstance(failure_or_blocker, str) or not failure_or_blocker.strip():
+            fail("payload field 'failure_or_blocker' must be a non-empty string when present")
+        packet["failure_or_blocker"] = failure_or_blocker.strip()
+    path = worker_report_file(state_root, args.task_id)
+    write_packet(path, packet)
+    dump_json({"ok": True, "task_id": args.task_id, "worker_report_file": str(path)})
+
+
+def advisor_handoff_cmd(args: argparse.Namespace) -> None:
+    state_root = parse_state_root(args.state_root)
+    payload = read_stdin_json(required=True)
+    progress = require_progress(state_root, args.task_id)
+    current_ac, current_tc = require_live_context(
+        progress=progress,
+        ac_id=args.ac_id,
+        tc_id=args.tc_id,
+    )
+    packet = {
+        "kind": "advisor_handoff",
+        "task_id": args.task_id,
+        "current_ac": current_ac,
+        "current_tc": current_tc,
+        "open_question": require_string(payload, "open_question"),
+        "recent_attempts": require_string_list(payload, "recent_attempts"),
+        "candidate_options": require_string_list(payload, "candidate_options"),
+    }
+    relevant_files = optional_string_list(payload, "relevant_files")
+    if relevant_files is not None:
+        packet["relevant_files"] = relevant_files
+    failing_check = payload.get("failing_check")
+    if failing_check is not None:
+        if not isinstance(failing_check, str) or not failing_check.strip():
+            fail("payload field 'failing_check' must be a non-empty string when present")
+        packet["failing_check"] = failing_check.strip()
+    worker_report_ref = payload.get("worker_report_ref")
+    if worker_report_ref is not None:
+        if not isinstance(worker_report_ref, str) or not worker_report_ref.strip():
+            fail("payload field 'worker_report_ref' must be a non-empty string when present")
+        packet["worker_report_ref"] = worker_report_ref.strip()
+    path = advisor_handoff_file(state_root, args.task_id)
+    write_packet(path, packet)
+    dump_json({"ok": True, "task_id": args.task_id, "advisor_handoff_file": str(path)})
+
+
+def retry_packet_cmd(args: argparse.Namespace) -> None:
+    state_root = parse_state_root(args.state_root)
+    payload = read_stdin_json(required=True)
+    progress = require_progress(state_root, args.task_id)
+    current_ac, current_tc = require_live_context(
+        progress=progress,
+        ac_id=args.ac_id,
+        tc_id=args.tc_id,
+    )
+    packet = {
+        "kind": "retry_packet",
+        "task_id": args.task_id,
+        "current_ac": current_ac,
+        "current_tc": current_tc,
+        "controller_decision": require_string(payload, "controller_decision"),
+        "recommended_path": require_string(payload, "recommended_path"),
+        "next_steps": require_string_list(payload, "next_steps"),
+    }
+    advisor_summary = payload.get("advisor_summary")
+    if advisor_summary is not None:
+        if not isinstance(advisor_summary, str) or not advisor_summary.strip():
+            fail("payload field 'advisor_summary' must be a non-empty string when present")
+        packet["advisor_summary"] = advisor_summary.strip()
+    risks_to_watch = optional_string_list(payload, "risks_to_watch")
+    if risks_to_watch is not None:
+        packet["risks_to_watch"] = risks_to_watch
+    advisor_handoff_ref = payload.get("advisor_handoff_ref")
+    if advisor_handoff_ref is not None:
+        if not isinstance(advisor_handoff_ref, str) or not advisor_handoff_ref.strip():
+            fail("payload field 'advisor_handoff_ref' must be a non-empty string when present")
+        packet["advisor_handoff_ref"] = advisor_handoff_ref.strip()
+    path = retry_packet_file(state_root, args.task_id)
+    write_packet(path, packet)
+    dump_json({"ok": True, "task_id": args.task_id, "retry_packet_file": str(path)})
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Manage the installed execute checklist artifact.")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -287,6 +500,27 @@ def build_parser() -> argparse.ArgumentParser:
     ac_complete_parser.add_argument("--task-id", required=True)
     ac_complete_parser.add_argument("--ac-id", required=True)
     ac_complete_parser.set_defaults(func=ac_complete_cmd)
+
+    worker_report_parser = subparsers.add_parser("worker-report", help="write the latest durable worker report from stdin JSON")
+    worker_report_parser.add_argument("--state-root", default=DEFAULT_STATE_ROOT)
+    worker_report_parser.add_argument("--task-id", required=True)
+    worker_report_parser.add_argument("--ac-id")
+    worker_report_parser.add_argument("--tc-id")
+    worker_report_parser.set_defaults(func=worker_report_cmd)
+
+    advisor_handoff_parser = subparsers.add_parser("advisor-handoff", help="write the latest advisor handoff from stdin JSON")
+    advisor_handoff_parser.add_argument("--state-root", default=DEFAULT_STATE_ROOT)
+    advisor_handoff_parser.add_argument("--task-id", required=True)
+    advisor_handoff_parser.add_argument("--ac-id")
+    advisor_handoff_parser.add_argument("--tc-id")
+    advisor_handoff_parser.set_defaults(func=advisor_handoff_cmd)
+
+    retry_packet_parser = subparsers.add_parser("retry-packet", help="write the latest controller retry packet from stdin JSON")
+    retry_packet_parser.add_argument("--state-root", default=DEFAULT_STATE_ROOT)
+    retry_packet_parser.add_argument("--task-id", required=True)
+    retry_packet_parser.add_argument("--ac-id")
+    retry_packet_parser.add_argument("--tc-id")
+    retry_packet_parser.set_defaults(func=retry_packet_cmd)
 
     return parser
 
