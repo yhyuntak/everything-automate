@@ -26,11 +26,11 @@ under the hood
 ## Core Expectations
 
 - `AGENTS.md` is the top-level operating contract
-- setup installs or generates the runtime overlays Codex needs
+- setup installs the guidance, agent prompts, and skills Codex needs
 - in-session workflow is the primary UX
 - durable execution is not assumed to be native to Codex
 - runtime helpers are internal support surfaces for state, instructions, and recovery
-- the shared kernel remains:
+- the kernel discipline remains:
 
 ```text
 plan -> execute -> verify -> decide
@@ -127,16 +127,21 @@ Primary in-session workflow surface:
 
 Current internal support surface in this source repo:
 
+- `runtime/ea_codex.py`
 - `templates/codex/overlays/ea-codex.sh`
 
-This helper is not the intended primary user workflow.
-Installed packaging may later hide or replace it behind in-session skill wiring.
+These helpers are not the intended primary user workflow.
+`ea-codex.sh` is an authoring-time wrapper around `runtime/ea_codex.py`.
+The current global setup does not install that wrapper into `~/.codex/`.
 
-Current planning-agent roster:
+Current agent roster:
 
+Planning agents:
 - `explorer`
 - `plan-arch`
 - `plan-devil`
+
+QA review agent:
 - `qa-reviewer`
 
 Current note:

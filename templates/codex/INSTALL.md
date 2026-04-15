@@ -18,7 +18,7 @@ start Codex session
 
 - top-level `AGENTS.md`
 - in-session workflow guidance
-- planning agent prompts under `templates/codex/agents/`
+- agent prompts under `templates/codex/agents/`
 - workflow skills under `templates/codex/skills/`
 - global installer: `scripts/install_global.py`
 - runtime state tool: `runtime/ea_state.py`
@@ -30,6 +30,7 @@ start Codex session
 - `$brainstorming`
 - `$planning`
 - `$execute`
+- `$qa`
 
 ## Local Repo Test Path
 
@@ -59,11 +60,14 @@ python3 runtime/ea_codex.py ...
 templates/codex/overlays/ea-codex.sh ...
 ```
 
+The wrapper stays in the source repo as authoring-time glue.
+The current global setup does not materialize it into `~/.codex/`.
+
 ## Verification Goal
 
 After setup, the Codex path should:
 
-- make `$brainstorming`, `$planning`, and `$execute` the active in-session workflow surfaces
+- make `$brainstorming`, `$planning`, `$execute`, and `$qa` the active in-session workflow surfaces
 - let approved plans hand off into `$execute` cleanly
 - keep state and recovery underneath the UX
 - support `status`, `cancel`, and `resume` without forcing the user into a wrapper-first workflow
@@ -73,13 +77,13 @@ After setup, the Codex path should:
 ## Status
 
 This is now a partial implementation guide.
-The current runtime helper exists, and the active user-facing Codex workflow skills right now are `$brainstorming`, `$planning`, and `$execute`.
+The current runtime helper exists, and the active user-facing Codex workflow skills right now are `$brainstorming`, `$planning`, `$execute`, and `$qa`.
 The current global setup v0 is:
 
 - `setup`
   - materialize `~/.codex/AGENTS.md`
   - materialize `~/.codex/agents/*.toml`
-  - materialize `~/.codex/skills/{brainstorming,planning,execute}/`
+  - materialize `~/.codex/skills/{brainstorming,planning,execute,qa}/`
   - write a managed install manifest under `~/.codex/everything-automate/`
   - back up replaced assets under `~/.codex/backups/<timestamp>/`
 - `doctor`

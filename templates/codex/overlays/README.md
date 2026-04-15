@@ -2,10 +2,13 @@
 
 This directory holds Codex-specific runtime glue for the current `M4` path.
 
-Current surface:
+Current source-repo surface:
 
 - `ea-codex.sh`
   Thin wrapper around `runtime/ea_codex.py`
+
+This wrapper is authoring-time glue.
+The current global Codex setup does not install it into `~/.codex/`.
 
 Role:
 
