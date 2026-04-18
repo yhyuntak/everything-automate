@@ -16,9 +16,10 @@ Its job is to:
 
 - read an approved plan
 - turn `Task -> AC -> TC` into a working checklist
-- let the main LLM act as the controller for the loop
-- use a worker for bounded implementation work
-- use an advisor only for hard execution moments
+- keep the main LLM as the controller for the loop
+- route bounded implementation work to the `worker` subagent lane when useful
+- route hard execution decisions to the `advisor` subagent lane when needed
+- let the worker raise escalation signals without calling the advisor directly
 - move through the task one AC at a time
 - use TC-first work when possible
 - use the earliest valid check first when strict test-first is not possible
@@ -98,32 +99,64 @@ If the entry check fails:
 ## Core Flow
 
 ```text
-approved plan
-  -> entry check
-  -> make execution checklist
-  -> controller picks next AC
-  -> controller picks next TC
-  -> choose TC type
-     -> automated
-     -> manual
-     -> doc
-     -> config
-  -> run the earliest valid check first
-  -> controller decides
-     -> direct small work
-     -> worker
-  -> worker reports result
-  -> controller decides
-     -> pass
-     -> retry directly
-     -> ask advisor
-     -> blocked
-     -> scope_drift
-  -> repeat
-  -> when all ACs pass
-     -> QA entry gate
-        -> continue into $qa in the same workflow
-        -> or stay in execute if review inputs are still missing
+[Approved Plan]
+   |
+   v
+[Entry Check]
+   |
+   +---- fail ----> [Return To Planning]
+   |
+   v
+[Make Checklist]
+   |
+   v
+[Controller Picks AC]
+   |
+   v
+[Controller Picks TC]
+   |
+   v
+[Run Earliest Valid Check]
+   |
+   v
+[Controller Chooses Work Mode]
+   |
+   +---- small direct work ----> [Controller Implements]
+   |
+   +---- bounded work ---------> [Worker Implements]
+   |                                |
+   |                                v
+   |                           [Worker Report]
+   |                                |
+   +<-------------------------------+
+   |
+   v
+[Controller Decides]
+   |
+   +---- pass ----------------> [Mark TC Done]
+   |
+   +---- clear retry ---------> [Retry]
+   |
+   +---- unclear/escalated ---> [Advisor Handoff]
+   |                                |
+   |                                v
+   |                           [Advisor Advice]
+   |                                |
+   +<-------------------------------+
+   |
+   +---- blocked -------------> [Stop And Report]
+   |
+   +---- scope drift ---------> [Return To Planning]
+   |
+   v
+[Repeat Until All ACs Pass]
+   |
+   v
+[QA Entry Gate]
+   |
+   +---- ready ---------------> [$qa]
+   |
+   +---- missing input -------> [Stay In Execute]
 ```
 
 ## Step Meanings
@@ -189,8 +222,18 @@ Use the best fit:
 `execute` uses one owner for the loop.
 
 That owner is the main LLM running `$execute`.
-
 Treat that main LLM as the `controller`.
+
+The supporting lanes are real subagent lanes:
+
+- `worker`
+  - bounded implementation lane
+  - works on the active AC and TC
+  - reports pass, fail, blocked, or escalation_needed
+- `advisor`
+  - high-reasoning decision lane
+  - receives a focused handoff from the controller
+  - recommends a path but does not implement
 
 The roles are:
 
@@ -198,7 +241,8 @@ The roles are:
   - read the plan
   - pick AC and TC
   - decide whether direct work is enough
-  - delegate bounded implementation work to a worker
+  - delegate bounded implementation work to a worker when useful
+  - read worker reports and escalation signals
   - decide whether advisor help is needed
   - decide whether to retry, stop, or return to `$planning`
 - `worker`
@@ -206,15 +250,54 @@ The roles are:
   - make bounded changes
   - run checks
   - report what happened clearly
+  - raise escalation signals when continuing would be unsafe or speculative
 - `advisor`
   - diagnose a hard execution moment
   - compare options
   - recommend a path and next steps
 
-Important rule:
+Important rules:
 
 - the worker does **not** call the advisor directly
+- the worker may ask the controller to escalate
 - the controller owns advisor use
+- the controller owns the final execution decision
+
+## Worker Escalation Rule
+
+The worker should continue when:
+
+- the next fix is clear
+- the fix stays inside approved scope
+- the check result points to a concrete next step
+- the risk of continuing is low
+
+The worker should raise escalation when:
+
+- the same check fails again and the next move is not clear
+- the root cause is unclear after a reasonable attempt
+- there is a design or architecture fork
+- the likely fix crosses scope or non-goals
+- a workflow or skill contract may need to change
+- continuing would be guessing
+- the risk of a wrong fix is high
+
+Escalation does not automatically mean advisor.
+The controller decides one of these:
+
+- retry directly with a clearer instruction
+- adjust the worker task boundary
+- call the advisor
+- stop as blocked
+- return to `$planning`
+
+Use these `escalation_type` values:
+
+- `none`
+- `controller_decision`
+- `advisor_candidate`
+- `planning_boundary`
+- `blocked`
 
 ## TC-First Rule
 
@@ -278,6 +361,7 @@ Use the advisor when the controller sees one of these:
 - execution reaches a real design fork
 - the likely fix crosses the approved plan boundary
 - the worker report shows repeated effort with weak progress
+- the worker raises `advisor_candidate` and the controller agrees
 - the task is near completion and needs one last risk pass before `$qa`
 
 If the next step is still obvious, retry directly first.
@@ -349,6 +433,11 @@ Use `worker-report.json` for the latest durable worker boundary:
 - optional files_touched
 - optional checks_run
 - optional failure_or_blocker
+- optional escalation_needed
+- optional escalation_type
+- optional escalation_question
+- optional uncertainty_reason
+- optional risk_if_continue
 
 Use `advisor-handoff.json` only when the controller calls the advisor:
 
@@ -358,6 +447,9 @@ Use `advisor-handoff.json` only when the controller calls the advisor:
 - optional relevant_files
 - optional failing_check
 - optional worker_report_ref
+- optional escalation_question
+- optional uncertainty_reason
+- optional risk_if_continue
 
 Use `retry-packet.json` after the controller reads the advisor result and decides the next move:
 

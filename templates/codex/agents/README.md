@@ -8,6 +8,11 @@ Current planning roster:
 - `plan-arch.md`
 - `plan-devil.md`
 
+Current execute agents:
+
+- `worker.md`
+- `advisor.md`
+
 Current QA review agents:
 
 - `code-reviewer.md`

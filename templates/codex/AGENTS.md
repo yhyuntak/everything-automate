@@ -176,6 +176,10 @@ Planning agents:
 - `plan-arch`
 - `plan-devil`
 
+Execute agents:
+- `worker`
+- `advisor`
+
 QA review agents:
 - `code-reviewer`
 - `harness-reviewer`
