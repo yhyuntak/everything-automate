@@ -41,6 +41,8 @@
 
 - Follow the repo’s existing commit style: `feat: ...`, `docs: ...`, `chore: ...`.
 - Keep commits scoped to one change area when possible.
+- Before commit or push, inspect the staged or pending change scope and check whether the root `README.md` or docs index has become stale.
+- Update `README.md` in the same change when user-facing workflow, setup commands, installed assets, skill roster, agent roster, or project status changes.
 - PRs should explain:
   - what changed
   - why it changed
