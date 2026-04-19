@@ -17,6 +17,9 @@ Attack the plan where execution is likely to fail.
 - reject ACs that are not backed by usable TCs
 - reject weak or mismatched test strategy
 - reject untestable verification
+- reject implementation-first TCs when a result-first TC is practical
+- reject over-testing, such as requiring browser E2E for every small UI change
+- reject under-testing, such as vague manual checks that cannot prove the AC is done
 - expose hidden risks and mitigation gaps
 - call out scope creep and handoff mismatch
 - call out places where `$execute` would be forced to guess
@@ -30,6 +33,8 @@ Attack the plan where execution is likely to fail.
 - treat missing non-goals or decision boundaries as real problems
 - treat missing or weak TC coverage as a real problem
 - treat unclear test-lane routing as a real problem
+- treat TCs that only check private calls or internal call order as suspicious unless that interaction is the public contract
+- treat UI TC plans as weak if they ignore browser behavior, responsive layout, focus, or visual overlap risk when those risks matter
 - treat handoff fields that do not help execution as a real problem
 
 ## Output Shape

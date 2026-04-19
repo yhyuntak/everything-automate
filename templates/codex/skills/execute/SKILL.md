@@ -217,6 +217,9 @@ Use the best fit:
 - `config`
   - a config, parse, startup, or smoke check
 
+Keep this list small.
+Detailed routing, such as UI browser checks or prompt scenarios, should come from the approved plan.
+
 ## Controller, Worker, Advisor
 
 `execute` uses one owner for the loop.
@@ -313,6 +316,7 @@ pick TC
 ```
 
 Do not default to "code first, tests later" when a useful check can come first.
+TDD is not mandatory; the goal is the earliest useful verification loop for the active TC.
 
 ## If Strict TDD Is Not Practical
 
@@ -332,6 +336,28 @@ if not possible, use check-first
 but always anchor the work in a TC
 ```
 
+## If The TC Is Weak Or Unclear
+
+Do not silently redesign the TC inside `$execute`.
+
+Return to `$planning` when a TC is:
+
+- unclear
+- too weak to prove the AC is done
+- mismatched with its AC
+- not executable by the controller or worker
+- only checking internal calls without a result that matters
+
+Example:
+
+```text
+TC: "check it works"
+  -> return to $planning
+
+TC: "verify private helper X was called once"
+  -> return to $planning unless that call is the public contract
+```
+
 ## Decision Loop
 
 After rerunning the current TC, decide:
@@ -344,6 +370,7 @@ After rerunning the current TC, decide:
   - use the advisor if the execution path is no longer clear
 - `blocked`
   - stop and report the blocker clearly
+  - return to `$planning` if the TC itself is unclear, too weak, mismatched, or not executable
 - `scope_drift`
   - stop and return to `$planning` if the work crosses the plan boundary
 
@@ -521,6 +548,7 @@ This is a skill-level workflow rule in this version, not a runtime-enforced scri
 - Do not replan inside `execute`.
 - Do not treat "looks done" as done.
 - Do not silently widen scope.
+- Do not silently redesign weak TCs.
 - Do not let the worker own the whole loop.
 - Do not let the worker call the advisor directly.
 - Do not skip TC thinking just because strict TDD is hard.

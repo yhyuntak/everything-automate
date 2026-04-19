@@ -95,9 +95,9 @@ input
   -> write Task
      -> write ACs
         -> attach TCs
-  -> use plan-arch if needed
+  -> use plan-arch for non-trivial plans
   -> revise if needed
-  -> use plan-devil if needed
+  -> use plan-devil for non-trivial plans
   -> revise if needed
   -> write execute handoff
   -> report plan and handoff summary
@@ -231,12 +231,80 @@ Meaning:
 - `AC`
   what must be true for that part to count as done
 - `TC`
-  how that AC will be tested or checked
+  the evidence that the AC is done
 
 Keep ACs concrete.
 Keep TCs tied to their ACs.
 
-### 11. Use `plan-arch` If Needed
+#### TC Writing Policy
+
+Write TCs before `$execute`.
+`$execute` runs the TC checklist; it should not have to invent better TCs.
+
+Use result-first TCs by default.
+
+That means:
+
+- test or check the result, not private implementation details
+- prefer public behavior, outputs, state changes, files, UI changes, and errors
+- for code work, use real internal code paths when practical
+- mock or fake external boundaries such as network, DB, file system, third-party APIs, time, and paid services
+- avoid TCs that only prove private method calls or internal call order, unless that interaction is the public contract
+
+TDD is useful, but it is not mandatory.
+
+Choose the earliest useful verification loop:
+
+- `test-first` when an automated test is practical and valuable
+- `check-first` when a UI, doc, config, or scenario check fits better
+- `verify-after` when the work is exploratory or visual, but still needs fresh evidence before completion
+
+Every TC should answer:
+
+- what result proves this AC is done?
+- what failure would this TC catch?
+- is this the cheapest reliable check?
+- can `$execute` run or perform it without guessing?
+
+Use this routing guide:
+
+- code behavior
+  - automated behavior test, CLI check, fixture check, output check, state check, or error check
+- UI behavior
+  - component check, browser check, Playwright-style flow, or manual visual check
+  - use browser checks when user flow, responsive layout, focus, keyboard, hover, asset loading, canvas, text overflow, or overlap risk matters
+  - do not require Playwright for every small UI change
+- docs or content
+  - doc checklist, link/index check, wording consistency check, or reader-flow check
+- config or install
+  - parse check, setup check, doctor check, startup check, or smoke check
+- runtime or state
+  - artifact check, state transition check, resume/cancel check, or terminal summary check
+- prompt, skill, or agent behavior
+  - scenario check, routing check, refusal check, or handoff check
+
+### 11. Use Planning Reviewers
+
+For non-trivial plans, use both `plan-arch` and `plan-devil` by default.
+
+Non-trivial plans include:
+
+- workflow, runtime, state, skill, or agent changes
+- UI behavior changes
+- multi-file behavior changes
+- unclear test strategy
+- AC/TC shape that could force `$execute` to guess
+
+Tiny low-risk work may skip them.
+
+Examples:
+
+- typo fixes
+- link fixes
+- narrow copy edits
+- very small changes with obvious scope, TC, test strategy, and handoff
+
+Use `plan-arch` to check structure and fit.
 
 Use `plan-arch` when:
 
@@ -244,26 +312,29 @@ Use `plan-arch` when:
 - the task shape is big enough that structure matters
 - the `Task -> AC -> TC` structure may be weak
 - the test strategy may not fit the work
+- TC routing may not fit the work
+- UI/browser verification may be under- or over-used
+- `$execute` may not be able to follow the plan without guessing
 
-`plan-arch` is not required for every plan.
-
-### 12. Use `plan-devil` If Needed
+Use `plan-devil` to attack failure risk.
 
 Use `plan-devil` when:
 
 - the risk is high
 - the ACs still feel weak
 - the TCs feel weak or missing
+- TCs check implementation details instead of results
+- the plan may over-test or under-test the work
 - the handoff may force `$execute` to guess
 - the chosen test strategy feels too weak
 
-`plan-devil` is also not required for every plan.
+For tiny low-risk work, explain briefly why reviewers were skipped.
 
-### 13. Write Execute Handoff
+### 12. Write Execute Handoff
 
 End the plan with a simple block that `$execute` can read.
 
-### 14. Report Plan Before Approval
+### 13. Report Plan Before Approval
 
 Before asking for approval, give the user a short clean report of the plan.
 
