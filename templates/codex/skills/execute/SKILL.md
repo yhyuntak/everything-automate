@@ -17,7 +17,7 @@ Its job is to:
 - read an approved plan
 - turn `Task -> AC -> TC` into a working checklist
 - keep the main LLM as the controller for the loop
-- route bounded implementation work to the `worker` subagent lane when useful
+- route implementation work to the `worker` subagent lane by default
 - route hard execution decisions to the `advisor` subagent lane when needed
 - let the worker raise escalation signals without calling the advisor directly
 - move through the task one AC at a time
@@ -119,16 +119,16 @@ If the entry check fails:
 [Run Earliest Valid Check]
    |
    v
-[Controller Chooses Work Mode]
+[Controller Builds Worker Task]
    |
-   +---- small direct work ----> [Controller Implements]
+   v
+[Worker Implements]
    |
-   +---- bounded work ---------> [Worker Implements]
-   |                                |
-   |                                v
-   |                           [Worker Report]
-   |                                |
-   +<-------------------------------+
+   v
+[Worker Report]
+   |
+   v
+[Controller Reads Report]
    |
    v
 [Controller Decides]
@@ -230,7 +230,7 @@ Treat that main LLM as the `controller`.
 The supporting lanes are real subagent lanes:
 
 - `worker`
-  - bounded implementation lane
+  - default implementation lane
   - works on the active AC and TC
   - reports pass, fail, blocked, or escalation_needed
 - `advisor`
@@ -243,8 +243,8 @@ The roles are:
 - `controller`
   - read the plan
   - pick AC and TC
-  - decide whether direct work is enough
-  - delegate bounded implementation work to a worker when useful
+  - build the worker task
+  - delegate implementation work to a worker by default
   - read worker reports and escalation signals
   - decide whether advisor help is needed
   - decide whether to retry, stop, or return to `$planning`
@@ -265,6 +265,8 @@ Important rules:
 - the worker may ask the controller to escalate
 - the controller owns advisor use
 - the controller owns the final execution decision
+- the controller should not implement directly during normal `$execute`
+- direct controller edits are only for tiny harness bookkeeping, such as checklist or handoff files
 
 ## Worker Escalation Rule
 

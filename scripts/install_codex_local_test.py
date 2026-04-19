@@ -47,6 +47,7 @@ def install_agents() -> list[str]:
             agent.prompt,
             model=agent.model,
             model_reasoning_effort=agent.model_reasoning_effort,
+            sandbox_mode=agent.sandbox_mode,
         )
         (TARGET_AGENTS_DIR / f"{agent.name}.toml").write_text(toml, encoding="utf-8")
         agent_names.append(agent.name)

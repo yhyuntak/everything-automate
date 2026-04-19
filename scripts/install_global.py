@@ -90,6 +90,7 @@ def render_agent_with_backup(agent_md: Path, dst: Path, spec: ProviderSpec) -> d
         agent.prompt,
         model=agent.model,
         model_reasoning_effort=agent.model_reasoning_effort,
+        sandbox_mode=agent.sandbox_mode,
     )
     dst.write_text(toml, encoding="utf-8")
     return {

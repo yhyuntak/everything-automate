@@ -17,6 +17,7 @@ class AgentDefinition:
     prompt: str
     model: str
     model_reasoning_effort: str
+    sandbox_mode: str
 
 
 def parse_frontmatter(md_path: Path) -> tuple[dict[str, str], str]:
@@ -56,6 +57,7 @@ def render_agent_toml(
     *,
     model: str,
     model_reasoning_effort: str,
+    sandbox_mode: str,
 ) -> str:
     escaped_prompt = prompt.replace('"""', '\\"""')
     return "\n".join(
@@ -64,7 +66,7 @@ def render_agent_toml(
             f'description = "{description}"',
             f'model = "{model}"',
             f'model_reasoning_effort = "{model_reasoning_effort}"',
-            'sandbox_mode = "read-only"',
+            f'sandbox_mode = "{sandbox_mode}"',
             'developer_instructions = """',
             escaped_prompt,
             '"""',
@@ -79,12 +81,14 @@ def load_agent_definition(agent_md: Path) -> AgentDefinition:
     description = metadata.get("description", f"{name} planning agent")
     model = metadata.get("model", "gpt-5.4-mini")
     model_reasoning_effort = metadata.get("model_reasoning_effort", "medium")
+    sandbox_mode = metadata.get("sandbox_mode", "read-only")
     return AgentDefinition(
         name=name,
         description=description,
         prompt=body,
         model=model,
         model_reasoning_effort=model_reasoning_effort,
+        sandbox_mode=sandbox_mode,
     )
 
 

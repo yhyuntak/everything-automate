@@ -3,6 +3,7 @@ name: worker
 description: Bounded execute subagent that works on one active AC/TC and reports results or escalation signals back to the controller.
 model: gpt-5.4
 model_reasoning_effort: medium
+sandbox_mode: danger-full-access
 ---
 
 # Worker Agent
