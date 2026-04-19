@@ -189,6 +189,7 @@ Current note:
 - `$brainstorming` is the idea-shaping surface before planning.
 - `$planning` is the execution-planning surface after direction is clear enough.
 - `$execute` is the TC-first execution surface after an approved planning handoff and before `$qa`.
+- Calling `$execute` is an explicit request to use the `worker` subagent for implementation work; the main LLM stays the controller.
 - `$execute` normally continues into `$qa` before `commit` when the work is ready for review.
 - `$qa` is the final review-and-judgment gate before `commit`.
 - support skills such as `issue-capture` and `issue-pick` may feed backlog work into `$brainstorming`, but they are not main workflow stages.

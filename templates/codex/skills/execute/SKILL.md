@@ -12,6 +12,14 @@ Use an approved plan to finish the work without reopening planning.
 
 `execute` is the main work phase after `$planning`.
 
+Calling `$execute` is an explicit request to use the `worker` subagent for implementation work.
+
+The main LLM is the controller.
+The controller owns the loop, but it should not do normal implementation itself.
+The controller should spawn the `worker` for each AC/TC implementation unit after the entry check and checklist setup.
+
+Only skip the worker for controller bookkeeping, such as checklist updates, QA handoff files, or a clearly read-only verification step.
+
 Its job is to:
 
 - read an approved plan
