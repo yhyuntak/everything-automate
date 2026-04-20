@@ -4,7 +4,7 @@
 
 - `templates/`: source of truth for distributable runtime assets. Codex lives under `templates/codex/`.
 - `scripts/`: setup and install helpers such as `install_global.py` and local test installers.
-- `runtime/`: shared runtime helpers and state tools, including `ea_state.py` and `ea_codex.py`.
+- `runtime/`: shared runtime helpers and state tools, including `ea_state.py`, `ea_progress.py`, and `ea_codex.py`.
 - `docs/`: research notes, specs, milestones, and design decisions. Start with `docs/README.md`.
 - `references/`: external reference projects used for research only. Do not treat them as editable source.
 - `.everything-automate/`: local working artifacts such as generated plans and state.
@@ -17,7 +17,7 @@
   Check whether managed global assets are installed and readable.
 - `python3 scripts/install_codex_local_test.py`
   Materialize repo-local Codex skills and agents for local testing.
-- `python3 -m py_compile scripts/install_global.py scripts/install_common.py runtime/ea_state.py runtime/ea_codex.py`
+- `python3 -m py_compile scripts/install_global.py scripts/install_common.py runtime/ea_state.py runtime/ea_progress.py runtime/ea_codex.py`
   Fast syntax check for the current Python entry points.
 - `git status --short`
   Confirm intended file scope before commit.

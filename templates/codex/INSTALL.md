@@ -22,6 +22,7 @@ start Codex session
 - workflow skills under `templates/codex/skills/`
 - global installer: `scripts/install_global.py`
 - runtime state tool: `runtime/ea_state.py`
+- runtime progress helper: `runtime/ea_progress.py`
 - Codex runtime helper: `runtime/ea_codex.py`
 - authoring-time wrapper: `templates/codex/overlays/ea-codex.sh`
 
@@ -82,7 +83,7 @@ After setup, the Codex path should:
 
 ## Status
 
-This is now a partial implementation guide.
+This is the current Codex install guide.
 The current runtime helper exists, and the active user-facing Codex workflow skills right now are `$brainstorming`, `$planning`, `$execute`, and `$qa`.
 The current installed support skills right now are `issue-capture` and `issue-pick`.
 The current global setup v0 is:

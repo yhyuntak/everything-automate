@@ -1,6 +1,9 @@
 # Codex Overlays
 
-This directory holds Codex-specific runtime glue for the current `M4` path.
+Status: support.
+
+This directory holds Codex-specific runtime glue for the authoring repo.
+It is not the primary user workflow.
 
 Current source-repo surface:
 

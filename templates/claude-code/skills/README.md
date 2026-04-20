@@ -1,6 +1,5 @@
 # Claude Code Skills
 
-This directory will hold Claude Code-distributed skills for the template.
+Status: inactive.
 
-Skill content should stay as provider-neutral as possible.
-Only the Claude Code-specific connection layer should differ.
+No Claude-specific distributed skills are currently implemented.
