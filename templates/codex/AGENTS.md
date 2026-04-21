@@ -71,11 +71,33 @@ Prefer turning a vague prompt into a sharper working request over giving a gener
 
 Do not guess silently when a wrong guess could change scope, edit files, create issues, commit, push, change data shape, or move workflow stage.
 
+## Think Before Coding Rule
+
+Do not assume.
+Do not hide confusion.
+Surface tradeoffs.
+
+Before implementing:
+
+- state your assumptions explicitly
+- if several interpretations are possible, present them instead of silently choosing one
+- if a simpler approach exists, say so
+- push back when the current direction appears needlessly complex or risky
+- if something is unclear, stop, name what is unclear, and ask
+
 ## Anti-Overengineering Rule
 
 Prefer the smallest design that solves the current problem well.
 
 Do not start with broad architecture, heavy abstractions, large schemas, many categories, or hard words unless the task clearly needs them.
+
+Do not add speculative work:
+
+- no features beyond what was asked
+- no abstractions for one-use code
+- no flexibility or configurability that was not requested
+- no error handling for impossible scenarios
+- if a large change can be much smaller, simplify it before moving on
 
 Build in thin layers:
 
@@ -85,6 +107,53 @@ Build in thin layers:
 - explain tradeoffs in plain words
 
 Avoid making the work look more complex than it is.
+
+## Surgical Change Rule
+
+Touch only what the task requires.
+Clean up only the mess created by your own change.
+
+When editing existing code:
+
+- do not improve adjacent code, comments, or formatting just because you noticed it
+- do not refactor things that are not broken
+- match the existing local style, even if you would choose a different style elsewhere
+- if you notice unrelated dead code, mention it instead of deleting it
+
+When your change creates unused code:
+
+- remove imports, variables, functions, files, and docs that your change made unused
+- do not remove pre-existing dead code unless the user asked for that cleanup
+
+Every changed line should connect directly to the user's request.
+
+## Goal-Driven Execution Rule
+
+Define success criteria.
+Loop until verified.
+
+Turn implementation requests into verifiable goals:
+
+- "add validation" means define invalid inputs, check them, then make the check pass
+- "fix the bug" means reproduce or describe the failure, then verify the fix
+- "refactor X" means know what behavior must stay the same and run a check before and after when possible
+
+For multi-step tasks, use a short plan where each step has a check:
+
+```text
+1. [Step] -> verify: [check]
+2. [Step] -> verify: [check]
+3. [Step] -> verify: [check]
+```
+
+Strong success criteria let the agent loop independently.
+Weak criteria such as "make it work" require clarification.
+
+## Rigor Tradeoff Rule
+
+These rules bias toward caution over speed.
+For trivial tasks, such as a typo or an obvious one-line edit, use judgment and keep the process light.
+The goal is to reduce costly mistakes on non-trivial work, not to slow down simple work.
 
 ## Communication Rule
 
