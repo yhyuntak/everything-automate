@@ -108,6 +108,32 @@ Parking Lot
 
 Do not let Spec Seeds or Parking Lot items change the locked goal unless the user explicitly chooses to change the North Star.
 
+## Drift Challenge Rule
+
+North Star is not passive note-taking.
+
+Before writing new user material into the goal, decide whether it strengthens the current North Star or pulls the session toward a side task.
+
+If the new idea may redirect the goal, stop and challenge it before updating `active.md`.
+
+Use direct language such as:
+
+```text
+This looks like a side path, not Goal Material.
+If we follow it now, the North Star will drift from [current target] to [new target].
+I recommend parking it unless you want to explicitly replace the North Star.
+```
+
+Only write the idea into the main North Star sections when one of these is true:
+
+- it clearly makes the current target more concrete
+- it tightens scope, non-goals, success, failure, or the decision filter
+- the user explicitly says to change or replace the North Star after the drift challenge
+
+Otherwise, put it in `Spec Seeds` or `Parking Lot`.
+
+When unsure, ask one narrow confirmation question instead of silently accepting the idea as Goal Material.
+
 ## Pipeline
 
 Follow this pipeline:
@@ -182,6 +208,8 @@ Write:
 Use the Decision Filter to classify new ideas before following them.
 
 If an idea does not clarify the current North Star, park it or capture it as a Spec Seed.
+
+If an idea would move the target to a different workstream, challenge it first. Do not quietly rewrite the North Star around the new workstream.
 
 ## Step 5: Use Structured Input Selectively
 

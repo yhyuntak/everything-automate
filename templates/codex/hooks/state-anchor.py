@@ -72,6 +72,8 @@ def build_north_star_anchor(markdown: str, stage: str) -> str:
         [
             "",
             "Before answering, classify the user's new message as Goal Material, Spec Seed, or Parking Lot.",
+            "If the message may redirect the current North Star, challenge it as likely drift before updating the goal.",
+            "Do not accept side tasks as Goal Material unless the user explicitly chooses to replace the North Star.",
             "Stay inside the current North Star unless the user explicitly changes it.",
             "Use request_user_input only for clear choices, classification, boundary confirmation, scope cuts, ambiguity choice, or lock/refine confirmation.",
         ]
