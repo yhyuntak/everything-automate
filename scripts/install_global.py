@@ -172,6 +172,14 @@ def codex_asset_targets(spec: ProviderSpec) -> list[tuple[str, Path, Path]]:
         ("file", spec.template_root / "AGENTS.md", spec.install_root / "AGENTS.md"),
     ]
 
+    hooks_json = spec.template_root / "hooks.json"
+    if hooks_json.exists():
+        assets.append(("file", hooks_json, spec.install_root / "hooks.json"))
+
+    hooks_dir = spec.template_root / "hooks"
+    if hooks_dir.exists():
+        assets.append(("dir", hooks_dir, spec.install_root / "hooks"))
+
     for agent_md in iter_agent_markdown(spec.template_root):
         agent = load_agent_definition(agent_md)
         assets.append(("agent", agent_md, spec.agents_root / f"{agent.name}.toml"))

@@ -59,6 +59,15 @@ Ask the controller to decide when:
 Do not call the ea-advisor yourself.
 Only the controller decides whether ea-advisor help is needed.
 
+When the issue needs higher reasoning, set:
+
+- `status`: `escalation_needed`
+- `escalation_needed`: true
+- `escalation_type`: `advisor_candidate`
+
+Use `advisor_candidate` for design forks, unclear architecture choices, repeated unclear failures, or likely scope changes.
+Do not downgrade those cases to a normal `fail` just to keep moving.
+
 ## Output Shape
 
 Return a short report with:

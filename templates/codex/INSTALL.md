@@ -20,6 +20,7 @@ start Codex session
 - in-session workflow guidance
 - agent prompts under `templates/codex/agents/`
 - workflow skills under `templates/codex/skills/`
+- workflow prompt hooks under `templates/codex/hooks.json` and `templates/codex/hooks/`
 - global installer: `scripts/install_global.py`
 - runtime state tool: `runtime/ea_state.py`
 - Codex runtime helper: `runtime/ea_codex.py`
@@ -28,6 +29,8 @@ start Codex session
 ## Current Workflow Shape
 
 - `$ea-brainstorming`
+- `$ea-north-star`
+- `$ea-blueprint`
 - `$ea-planning`
 - `$ea-execute`
 - `$ea-qa`
@@ -72,8 +75,9 @@ The current global setup does not materialize it into `~/.codex/`.
 
 After setup, the Codex path should:
 
-- make `$ea-brainstorming`, `$ea-planning`, `$ea-execute`, and `$ea-qa` the active in-session workflow surfaces
+- make `$ea-brainstorming`, `$ea-north-star`, `$ea-blueprint`, `$ea-planning`, `$ea-execute`, and `$ea-qa` the active in-session workflow surfaces
 - install support skills for GitHub backlog capture and pick-up
+- install the active-state hook that reads `.everything-automate/state/active.md`
 - let approved plans hand off into `$ea-execute` cleanly
 - keep state and recovery underneath the UX
 - support `status`, `cancel`, and `resume` without forcing the user into a wrapper-first workflow
@@ -83,14 +87,16 @@ After setup, the Codex path should:
 ## Status
 
 This is now a partial implementation guide.
-The current runtime helper exists, and the active user-facing Codex workflow skills right now are `$ea-brainstorming`, `$ea-planning`, `$ea-execute`, and `$ea-qa`.
+The current runtime helper exists, and the active user-facing Codex workflow skills right now are `$ea-brainstorming`, `$ea-north-star`, `$ea-blueprint`, `$ea-planning`, `$ea-execute`, and `$ea-qa`.
 The current installed support skills right now are `ea-issue-capture` and `ea-issue-pick`.
 The current global setup v0 is:
 
 - `setup`
   - materialize `~/.codex/AGENTS.md`
+  - materialize `~/.codex/hooks.json`
+  - materialize `~/.codex/hooks/`
   - materialize `~/.codex/agents/*.toml`
-  - materialize `~/.codex/skills/{ea-brainstorming,ea-planning,ea-execute,ea-qa,ea-issue-capture,ea-issue-pick}/`
+  - materialize `~/.codex/skills/{ea-brainstorming,ea-north-star,ea-blueprint,ea-planning,ea-execute,ea-qa,ea-issue-capture,ea-issue-pick}/`
   - write a managed install manifest under `~/.codex/everything-automate/`
   - back up replaced assets under `~/.codex/backups/<timestamp>/`
 - `doctor`

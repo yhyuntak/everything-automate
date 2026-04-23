@@ -1,6 +1,6 @@
 ---
 title: Everything Automate
-description: Codex-first reusable agent workflow project with ea-brainstorming, ea-planning, ea-execute, and global Codex setup.
+description: Codex-first reusable agent workflow project with ea-north-star, ea-blueprint, ea-planning, ea-execute, and global Codex setup.
 doc_type: guide
 scope:
   - project overview
@@ -22,18 +22,27 @@ The current in-session workflow is:
 
 ```text
 $ea-brainstorming
+  -> $ea-north-star
+  -> $ea-blueprint
   -> $ea-planning
   -> $ea-execute
+  -> $ea-qa
 ```
 
 ## What It Does
 
 - `$ea-brainstorming`
   helps turn a vague idea into a clear direction
+- `$ea-north-star`
+  locks a fuzzy target into one clear goal
+- `$ea-blueprint`
+  turns a locked goal into a buildable design spec
 - `$ea-planning`
   turns a clear request into a plan that `$ea-execute` can use
 - `$ea-execute`
   uses an approved plan, does the work, checks the result, and decides what to do next
+- `$ea-qa`
+  reviews finished work before commit
 
 Under the hood, the project also has:
 
@@ -71,10 +80,15 @@ python3 scripts/install_global.py doctor --provider codex
 Current global install writes:
 
 - `~/.codex/AGENTS.md`
+- `~/.codex/hooks.json`
+- `~/.codex/hooks/`
 - `~/.codex/agents/*.toml`
 - `~/.codex/skills/ea-brainstorming/`
+- `~/.codex/skills/ea-north-star/`
+- `~/.codex/skills/ea-blueprint/`
 - `~/.codex/skills/ea-planning/`
 - `~/.codex/skills/ea-execute/`
+- `~/.codex/skills/ea-qa/`
 
 It also:
 

@@ -6,6 +6,8 @@ __pycache__/
 .codex/state/
 .codex/skills/
 .codex/agents/
+.codex/hooks
+.codex/hooks.json
 .codex/testing/
 
 # Local Everything Automate artifacts
@@ -16,4 +18,4 @@ __pycache__/
 !.everything-automate/plans/*.md
 
 # Cloned external references are working material, not source-of-truth
-references/
+/references/

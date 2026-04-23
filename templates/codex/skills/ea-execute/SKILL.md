@@ -28,7 +28,7 @@ Its job is to:
 - route implementation work to the `ea-worker` subagent lane by default
 - route hard execution decisions to the `ea-advisor` subagent lane when needed
 - let the ea-worker raise escalation signals without calling the ea-advisor directly
-- move through the task one AC at a time
+- move through the task safely, using serial work by default and parallel work when ACs or TCs are independent
 - use TC-first work when possible
 - use the earliest valid check first when strict test-first is not possible
 - keep progress visible
@@ -118,7 +118,17 @@ If the entry check fails:
 [Make Checklist]
    |
    v
-[Controller Picks AC]
+[Controller Checks Parallel Safety]
+   |
+   +---- independent work ----> [Spawn Bounded Workers In Parallel]
+   |                                  |
+   |                                  v
+   |                            [Collect Worker Reports]
+   |                                  |
+   +<---------------------------------+
+   |
+   v
+[Controller Picks AC Or TC Batch]
    |
    v
 [Controller Picks TC]
@@ -190,17 +200,39 @@ Task
 
 This checklist is what you actually work from.
 
-### 2. Pick The Next AC
+### 2. Check Parallel Safety
 
-Work one AC at a time.
+After the checklist exists, scan the pending ACs and TCs for independence.
 
-Do not try to finish the whole task at once.
+Use parallel worker calls only when all of these are true:
+
+- the plan gives clear AC/TC boundaries
+- each worker can own a disjoint file, module, doc, prompt, or config scope
+- the work does not require another active worker's result
+- the checks can run without racing on the same mutable state
+- the expected merge path is simple enough for the controller to review
+
+Stay serial when:
+
+- file or module ownership overlaps
+- one AC decides the shape for another AC
+- the worker would need to coordinate with another worker mid-task
+- a shared generated file, lockfile, migration, or state file may be edited by more than one worker
+- the plan is weak and parallel work would hide design confusion
+
+Parallelism is a tool for independent work, not a reason to split unclear work.
+
+### 3. Pick The Next AC
+
+Work one AC at a time unless the parallel safety check finds independent work.
+
+Do not try to finish the whole task at once. If running parallel work, spawn small bounded workers for independent ACs or TC groups.
 
 When an AC becomes active, update the checklist with:
 
 - `scripts/checklist.py ac-start`
 
-### 3. Pick The Next TC
+### 4. Pick The Next TC
 
 Inside the current AC, pick the next unfinished TC.
 
@@ -210,7 +242,7 @@ When a TC becomes active, update the checklist with:
 
 - `scripts/checklist.py tc-start`
 
-### 4. Choose TC Type
+### 5. Choose TC Type
 
 Not every TC is the same.
 
@@ -275,6 +307,57 @@ Important rules:
 - the controller owns the final execution decision
 - the controller should not implement directly during normal `$ea-execute`
 - direct controller edits are only for tiny harness bookkeeping, such as checklist or handoff files
+
+## Advisor Escalation Rule
+
+The controller must not silently solve hard execution calls by itself.
+
+Call the ea-advisor when the ea-worker reports `escalation_needed: true` with `escalation_type: advisor_candidate`, unless the controller can point to a concrete reason that the ea-worker report is wrong.
+
+Also call the ea-advisor when any of these appear:
+
+- a design or architecture fork
+- a likely fix that crosses approved scope or non-goals
+- repeated failure where the next move is not obvious
+- a workflow, skill, hook, or agent contract may need to change
+- the controller would need to invent a new approach not already covered by the plan
+
+The controller may summarize facts, prepare the handoff, and decide after advice.
+The controller may not replace the advisor by making the hard design call itself.
+
+## Parallel Worker Rule
+
+When using parallel workers, the controller must make ownership explicit.
+
+Each ea-worker prompt should say:
+
+- which AC or TC group it owns
+- which files, modules, docs, prompts, or config surfaces it may edit
+- which related surfaces it may read
+- which checks it should run
+- that other workers may be editing the repo at the same time
+- that it must not revert or overwrite changes outside its scope
+- that it must adapt to existing changes instead of undoing them
+
+The controller should spawn typed ea-workers with explicit task context.
+Do not combine `fork_context: true` with an explicit `agent_type`, model, or reasoning override.
+If the controller needs the `ea-worker` lane, either spawn `agent_type: ea-worker` without forking full context, or fork context without overriding the agent type.
+
+Pause new parallel spawns when any active ea-worker reports:
+
+- `blocked`
+- `escalation_needed`
+- a scope conflict
+- overlapping file ownership
+- a check failure that could invalidate another active worker's work
+
+After parallel workers finish, the controller must:
+
+- read every report
+- inspect or summarize the combined diff
+- run the shared verification checks
+- update the checklist for each completed AC/TC
+- decide whether any failed or escalated work needs retry, advisor help, or return to planning
 
 ## Worker Escalation Rule
 
@@ -458,6 +541,7 @@ The latest durable packet files live under the task state root.
 The main files are:
 
 - `ea-worker-report.json`
+- `ea-worker-report-[ac-or-tc-id].json` when several workers run in parallel
 - `ea-advisor-handoff.json`
 - `retry-packet.json`
 - `ea-execute-progress.json`

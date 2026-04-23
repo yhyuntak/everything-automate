@@ -13,6 +13,8 @@ Runtime helpers and state tools exist to support that workflow, not replace it.
 ```text
 inside Codex
   -> $ea-brainstorming
+  -> $ea-north-star
+  -> $ea-blueprint
   -> $ea-planning
   -> $ea-execute
   -> $ea-qa
@@ -225,6 +227,8 @@ That is only a short chain, not a real flow chart.
 Primary in-session workflow surface:
 
 - `$ea-brainstorming`
+- `$ea-north-star`
+- `$ea-blueprint`
 - `$ea-planning`
 - `$ea-execute`
 - `$ea-qa`
@@ -259,6 +263,8 @@ Docs agents:
 Current note:
 
 - `$ea-brainstorming` is the idea-shaping surface before ea-planning.
+- `$ea-north-star` is the goal-lock surface when the target is fuzzy and drift risk is high.
+- `$ea-blueprint` is the design-spec surface after North Star and before ea-planning.
 - `$ea-planning` is the execution planning surface after direction is clear enough.
 - `$ea-execute` is the TC-first execution surface after an approved ea-planning handoff and before `$ea-qa`.
 - Calling `$ea-execute` is an explicit request to use the `ea-worker` subagent for implementation work; the main LLM stays the controller.

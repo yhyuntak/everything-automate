@@ -20,6 +20,7 @@ TEMPLATE_ROOT = ROOT / "templates" / "codex"
 TARGET_CODEX_ROOT = ROOT / ".codex"
 TARGET_SKILLS_DIR = TARGET_CODEX_ROOT / "skills"
 TARGET_AGENTS_DIR = TARGET_CODEX_ROOT / "agents"
+TARGET_HOOKS_DIR = TARGET_CODEX_ROOT / "hooks"
 TARGET_TESTING_DIR = TARGET_CODEX_ROOT / "testing"
 TARGET_RUNTIME_DIR = ROOT / ".everything-automate"
 
@@ -55,6 +56,21 @@ def install_agents() -> list[str]:
     return agent_names
 
 
+def install_hooks() -> list[str]:
+    installed: list[str] = []
+    hooks_json = TEMPLATE_ROOT / "hooks.json"
+    if hooks_json.exists():
+        ensure_symlink(hooks_json, TARGET_CODEX_ROOT / "hooks.json")
+        installed.append("hooks.json")
+
+    hooks_dir = TEMPLATE_ROOT / "hooks"
+    if hooks_dir.exists():
+        ensure_symlink(hooks_dir, TARGET_HOOKS_DIR)
+        installed.append("hooks/")
+
+    return installed
+
+
 def install_testing_references() -> None:
     TARGET_TESTING_DIR.mkdir(parents=True, exist_ok=True)
     TARGET_RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
@@ -63,7 +79,7 @@ def install_testing_references() -> None:
     ensure_symlink(TEMPLATE_ROOT / "INSTALL.md", TARGET_TESTING_DIR / "codex-template-INSTALL.md")
 
 
-def write_manifest(skills: list[str], agents: list[str]) -> Path:
+def write_manifest(skills: list[str], agents: list[str], hooks: list[str]) -> Path:
     manifest_path = TARGET_TESTING_DIR / "local-install-manifest.json"
     manifest = {
         "workspace_root": str(ROOT),
@@ -72,6 +88,7 @@ def write_manifest(skills: list[str], agents: list[str]) -> Path:
         "template_runtime_guidance": str(TARGET_TESTING_DIR / "codex-template-AGENTS.md"),
         "installed_skills": skills,
         "installed_agents": agents,
+        "installed_hooks": hooks,
     }
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return manifest_path
@@ -85,12 +102,14 @@ def main() -> int:
 
     skills = install_skills()
     agents = install_agents()
+    hooks = install_hooks()
     install_testing_references()
-    manifest_path = write_manifest(skills, agents)
+    manifest_path = write_manifest(skills, agents, hooks)
 
     print("Installed project-local Codex test assets:")
     print(f"- skills: {', '.join(skills)}")
     print(f"- agents: {', '.join(agents)}")
+    print(f"- hooks: {', '.join(hooks) if hooks else '(none)'}")
     print(f"- manifest: {manifest_path}")
     return 0
 

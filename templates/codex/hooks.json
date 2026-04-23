@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f .codex/hooks/state-anchor.py && python3 .codex/hooks/state-anchor.py || python3 \"${CODEX_HOME:-$HOME/.codex}/hooks/state-anchor.py\""
+          }
+        ]
+      }
+    ]
+  }
+}

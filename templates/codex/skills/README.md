@@ -5,12 +5,16 @@ This directory holds distributable skills for the Codex template.
 Current active in-session workflow surface:
 
 - `ea-brainstorming/`
+- `ea-north-star/`
+- `ea-blueprint/`
 - `ea-planning/`
 - `ea-execute/`
 - `ea-qa/`
 
 `ea-brainstorming/` is upstream ideation and design shaping.
-`ea-planning/` is downstream execution ea-planning.
+`ea-north-star/` locks a fuzzy target into one clear shared goal.
+`ea-blueprint/` turns a locked North Star into a buildable design spec.
+`ea-planning/` is downstream execution planning.
 `ea-execute/` is downstream TC-first execution after an approved ea-planning handoff and before `$ea-qa`.
 `ea-qa/` is the final cold-review gate before commit.
 
@@ -29,4 +33,7 @@ Installed helper scripts live under the skill that uses them.
 - `ea-execute/scripts/`
 - `ea-qa/scripts/`
 
-Other workflow skills should not be added here until their contracts are explicitly agreed.
+Workflow hooks live under:
+
+- `templates/codex/hooks.json`
+- `templates/codex/hooks/`
