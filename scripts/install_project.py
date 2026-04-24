@@ -24,10 +24,13 @@ END_MARKER = "<!-- END EVERYTHING AUTOMATE CODEX -->"
 
 LEGACY_MANAGED_AGENT_FILES = (
     "advisor.toml",
+    "ea-blueprint-design-reviewer.toml",
     "code-reviewer.toml",
     "ea-qa-reviewer.toml",
+    "ea-blueprint-read-test.toml",
     "explorer.toml",
     "harness-reviewer.toml",
+    "ea-north-star-read-test.toml",
     "plan-arch.toml",
     "plan-devil.toml",
     "qa-reviewer.toml",
@@ -41,6 +44,7 @@ LEGACY_MANAGED_SKILL_DIRS = (
     "issue-pick",
     "planning",
     "qa",
+    "ea-blueprint",
 )
 
 

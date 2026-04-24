@@ -230,6 +230,11 @@ Follow this lifecycle:
 [Draft Integrated Design Note]
    |
    v
+[Run Read-Test]
+   |
+   +---- fail ----> [Clarify Design Note And Rerun]
+   |
+   v
 [Ask User To Accept Or Refine]
    |
    +---- refine ----> [Continue Conversation]
@@ -260,6 +265,49 @@ It should include:
 Keep it planning-readable.
 Do not turn it into a long tutorial.
 
+## Read-Test Gate
+
+Run read-test after the integrated design note is drafted and before asking the user to accept it.
+
+Use three `ea-read-test` agents when available.
+
+Each agent should read:
+
+- `.everything-automate/state/active.md`
+
+Do not paste the full state file into the prompt. Ask each agent to read the file directly and report its natural interpretation.
+
+The read-test prompt should stay simple:
+
+```text
+Read the active Brainstorming file and explain what code milestone boundary, design direction, decisions, reasons, parking lot, and planning handoff you think it communicates. Say what Planning should do next and what it must not guess.
+
+Focus on the Brainstorming stage: check whether the integrated design note is clear enough for Planning and whether scope, decisions, reasons, and Parking Lot are separated.
+```
+
+Pass when:
+
+- all three agents describe the same code milestone boundary
+- all three agents describe compatible design direction
+- at least two of three agree on the key decisions and reasons
+- at least two of three agree on the main Parking Lot items
+- no agent reports that Planning would need to invent the core design
+
+Fail when:
+
+- any agent reads a different milestone boundary
+- agents disagree on the main design direction
+- agents disagree on whether this is brainstorming, planning, or implementation
+- more than one agent says the planning handoff is too ambiguous to act on
+
+If read-test fails:
+
+- compare the divergent interpretations
+- find the smallest unclear point
+- brief the user on the issue and risk
+- update the integrated design note after user direction
+- rerun read-test when useful
+
 ## When To Move To `$ea-planning`
 
 Move to `$ea-planning` only when:
@@ -268,6 +316,7 @@ Move to `$ea-planning` only when:
 - important tradeoffs have been discussed enough
 - decisions and reasons are captured
 - out-of-scope ideas are parked
+- read-test passes or the user explicitly accepts the remaining risk
 - the user accepts the integrated design note
 
 If the design still feels fuzzy, continue `ea-brainstorming`.
@@ -282,6 +331,7 @@ If the milestone is too large, move back to `$ea-milestone`.
 - relevant design lenses and tradeoffs have been discussed
 - user decisions are captured with reasons
 - Parking Lot items are separate from the current milestone
+- read-test passes or the user explicitly accepts the remaining risk
 - the integrated design note is accepted and archived
 - `.everything-automate/state/active.md` has been removed
 - the next step is `$ea-planning`

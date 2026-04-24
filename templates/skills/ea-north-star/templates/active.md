@@ -40,7 +40,7 @@ read_test_default_reasoning: medium
 [Questions used to decide whether new ideas clarify, change, or sit outside the current North Star.]
 
 ## Spec Seeds
-[Build-relevant ideas found during North Star. These are inputs to a later blueprint or spec, not accepted design decisions.]
+[Build-relevant ideas found during North Star. These are inputs to a later brainstorming or planning step, not accepted design decisions.]
 
 ## Parking Lot
 [Useful ideas outside the current target.]

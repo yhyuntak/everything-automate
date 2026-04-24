@@ -1,6 +1,6 @@
 ---
 name: ea-north-star
-description: Lock a fuzzy user goal into one clear North Star before milestone splitting, blueprinting, planning, backlog work, or execution.
+description: Lock a fuzzy user goal into one clear North Star before milestone splitting, brainstorming, planning, backlog work, or execution.
 argument-hint: "<fuzzy goal, product idea, feature idea, issue, or unclear target>"
 ---
 
@@ -35,7 +35,7 @@ If the user did not explicitly ask for North Star mode, ask before starting when
 
 Do not use this skill when:
 
-- the task is already clear enough for milestone splitting, blueprinting, or implementation
+- the task is already clear enough for milestone splitting, brainstorming, or implementation
 - the user wants execution planning from an already locked target
 - the user wants open-ended idea expansion
 - the user wants a code review or QA review
@@ -56,7 +56,7 @@ It owns:
 It does not own:
 
 - milestone splitting
-- blueprinting
+- brainstorming
 - execution planning
 - implementation
 - QA
@@ -84,7 +84,7 @@ There must be only one active state file in a workspace:
 Do not create mode-specific active files such as:
 
 - `.everything-automate/state/north-star/active.md`
-- `.everything-automate/state/blueprint/active.md`
+- `.everything-automate/state/brainstorming/active.md`
 
 Use the `mode` front matter to say which workflow owns the current active state.
 
@@ -246,7 +246,7 @@ Free-form conversation extracts the raw picture. Structured input narrows it.
 
 Run read-test only after the North Star looks concrete enough to inspect.
 
-Use three `ea-north-star-read-test` agents when available.
+Use three `ea-read-test` agents when available.
 
 Each agent should read:
 
@@ -258,6 +258,8 @@ The read-test prompt should stay simple:
 
 ```text
 Read the active North Star file and explain what you think the user wants, what success looks like, what is clearly included, what is clearly excluded, and what still feels unclear.
+
+Focus on the North Star stage: check whether the final goal, success picture, scope, non-goals, decision filter, Spec Seeds, and Parking Lot read as one clear target.
 ```
 
 ## Read-Test Pass/Fail

@@ -6,7 +6,7 @@ Good examples:
 
 - repository investigation summary complete
 - guide document v1 complete
-- frontend guide blueprint accepted
+- frontend guide design note accepted
 - install flow validation notes complete
 
 Weak examples:

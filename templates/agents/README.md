@@ -2,6 +2,10 @@
 
 This directory holds the narrow agent prompts for the Codex template.
 
+Shared read-test agent:
+
+- `ea-read-test.md`
+
 Current ea-planning roster:
 
 - `ea-explorer.md`

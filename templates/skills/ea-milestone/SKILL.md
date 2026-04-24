@@ -1,18 +1,18 @@
 ---
 name: ea-milestone
-description: Split a locked North Star into ordered output milestones before blueprinting.
+description: Split a locked North Star into ordered output milestones before code design brainstorming.
 argument-hint: "<locked North Star artifact or milestone roadmap request>"
 ---
 
 # ea-milestone
 
-Use this after a locked North Star and before Blueprint.
+Use this after a locked North Star and before `ea-brainstorming`.
 
 `ea-milestone` turns one locked final goal into ordered output milestones that later stages can work one by one.
 
 ## Purpose
 
-`ea-milestone` exists so large goals do not jump straight from North Star into Blueprint.
+`ea-milestone` exists so large goals do not jump straight from North Star into code design brainstorming.
 
 It creates and maintains:
 
@@ -24,10 +24,10 @@ This active file is the source of truth while Milestone mode is active.
 
 Use this skill when:
 
-- a locked North Star is too large to blueprint in one step
+- a locked North Star is too large to brainstorm and plan in one step
 - the goal has clear stage order, dependencies, or required handoffs
 - the user needs output-first milestones before deciding what to design now
-- the next blueprint should start from one milestone rather than from the whole goal
+- the next `ea-brainstorming` session should start from one milestone rather than from the whole goal
 
 If the user did not explicitly ask for Milestone mode, ask before starting when the change would create or update `active.md`.
 
@@ -36,7 +36,7 @@ If the user did not explicitly ask for Milestone mode, ask before starting when 
 Do not use this skill when:
 
 - there is no locked North Star artifact
-- the target is already small enough for a one-item roadmap and the user is ready to blueprint now
+- the target is already small enough for a one-item roadmap and the user is ready for `ea-brainstorming`
 - the user wants open-ended idea generation instead of ordered delivery steps
 - the user wants detailed design or implementation planning rather than milestone splitting
 
@@ -51,7 +51,7 @@ It owns:
 - current milestone recommendation
 - ordering logic
 - milestone dependencies
-- handoff rule for Blueprint
+- handoff rule for `ea-brainstorming`
 
 It does not own:
 
@@ -126,7 +126,7 @@ Good:
 
 - investigation summary complete
 - beginner guide document v1 complete
-- frontend guide blueprint accepted
+- frontend guide design note accepted
 
 Weak:
 
@@ -145,6 +145,7 @@ locked north-star archive
   -> create active.md
   -> user revises split, order, outputs, and dependencies
   -> confirm current milestone recommendation
+  -> read-test
   -> lock roadmap
   -> archive accepted output and remove active.md
 ```
@@ -205,14 +206,58 @@ Use `request_user_input` when the user needs to:
 - cut scope
 - merge or split milestones
 
-## Step 5: Lock The Roadmap
+## Step 5: Run Read-Test
+
+Run read-test only after the milestone roadmap looks concrete enough to inspect.
+
+Use three `ea-read-test` agents when available.
+
+Each agent should read:
+
+- `.everything-automate/state/active.md`
+
+Do not paste the full state file into the prompt. Ask each agent to read the file directly and report its natural interpretation.
+
+The read-test prompt should stay simple:
+
+```text
+Read the active Milestone file and explain what roadmap you think it communicates, whether the parent goal is preserved, what the milestones produce, which milestone is recommended now, what is clearly excluded, and what still feels unclear.
+
+Focus on the Milestone stage: check whether the parent goal, milestone order, output artifacts, current milestone recommendation, dependencies, and handoff rule read clearly.
+```
+
+Pass when:
+
+- all three agents describe the same parent goal
+- all three agents describe compatible milestone order
+- at least two of three agree on the current milestone recommendation
+- at least two of three agree on the main out-of-scope items
+- no agent reports that the roadmap changes the North Star
+
+Fail when:
+
+- any agent reads a different parent goal
+- agents disagree on the current milestone recommendation
+- agents disagree on whether this is milestone splitting, design, planning, or implementation
+- more than one agent says the roadmap is too ambiguous to act on
+
+If read-test fails:
+
+- compare the divergent interpretations
+- find the smallest unclear point
+- ask the user one narrow question
+- update `active.md`
+- run read-test again when useful
+
+## Step 6: Lock The Roadmap
 
 Lock when:
 
 - the roadmap order is clear enough
 - each milestone has an output artifact
 - the current milestone recommendation is explicit
-- the dependencies are clear enough for Blueprint to start
+- the dependencies are clear enough for `ea-brainstorming` to start
+- read-test passes or the user explicitly accepts the remaining risk
 
 Archive the accepted roadmap and remove `active.md`.
 
@@ -235,5 +280,6 @@ Milestone is complete when:
 - ordering logic is clear
 - one current milestone recommendation is explicit
 - risks and dependencies are recorded
+- read-test passes or the user explicitly accepts the remaining risk
 - the accepted milestone output has been archived
 - `.everything-automate/state/active.md` has been removed

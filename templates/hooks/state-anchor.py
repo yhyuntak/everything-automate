@@ -113,50 +113,6 @@ def build_milestone_anchor(markdown: str, stage: str) -> str:
     return "\n".join(parts).strip()
 
 
-def build_blueprint_anchor(markdown: str, stage: str) -> str:
-    anchor_message = section(markdown, "Anchor Message")
-    source_goal = section(markdown, "Source Goal")
-    source_milestone = section(markdown, "Source Milestone")
-    target_and_scope = section(markdown, "Target And Scope")
-    current_state = section(markdown, "Current State")
-    design_pressure = section(markdown, "Design Pressure")
-    proposed_design = section(markdown, "Proposed Design")
-    open_questions = section(markdown, "Open Questions And Decisions")
-    handoff_notes = section(markdown, "Handoff Notes")
-
-    parts = [
-        "Blueprint mode is active.",
-        f"Stage: {stage}.",
-    ]
-    if anchor_message:
-        parts.extend(["", "Anchor:", anchor_message])
-    if source_goal:
-        parts.extend(["", "Source Goal:", source_goal])
-    if source_milestone:
-        parts.extend(["", "Source Milestone:", source_milestone])
-    if target_and_scope:
-        parts.extend(["", "Target And Scope:", target_and_scope])
-    if current_state:
-        parts.extend(["", "Current State:", current_state])
-    if design_pressure:
-        parts.extend(["", "Design Pressure:", design_pressure])
-    if proposed_design:
-        parts.extend(["", "Proposed Design:", proposed_design])
-    if open_questions:
-        parts.extend(["", "Open Questions And Decisions:", open_questions])
-    if handoff_notes:
-        parts.extend(["", "Handoff Notes:", handoff_notes])
-    parts.extend(
-        [
-            "",
-            "Stay inside the active blueprint boundary.",
-            "Classify new ideas as Blueprint Design Material, Open Question, Handoff Note, or Parking Lot before following them.",
-            "Do not turn blueprint work into execution planning unless the user explicitly asks to move stages.",
-        ]
-    )
-    return "\n".join(parts).strip()
-
-
 def build_brainstorming_anchor(markdown: str, stage: str) -> str:
     anchor_message = section(markdown, "Anchor Message")
     source_milestone = section(markdown, "Source Milestone")
@@ -214,8 +170,6 @@ def build_anchor(markdown: str) -> str:
         return build_north_star_anchor(markdown, stage)
     if mode == "milestone":
         return build_milestone_anchor(markdown, stage)
-    if mode == "blueprint":
-        return build_blueprint_anchor(markdown, stage)
     return ""
 
 

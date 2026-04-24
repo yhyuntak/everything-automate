@@ -199,14 +199,14 @@ EA is ready when:
   splits a locked goal into one or more ordered code milestones
 - `$ea-brainstorming`
   turns one chosen code milestone into bounded senior-engineer design brainstorming
-- `$ea-blueprint`
-  remains available for older design-spec flows, but the current code path uses `$ea-brainstorming`
 - `$ea-planning`
   turns a clear request into a plan that `$ea-execute` can use
 - `$ea-execute`
   uses an approved plan, does the work, checks the result, and decides what to do next
 - `$ea-qa`
   reviews finished work before commit
+
+`$ea-north-star`, `$ea-milestone`, and `$ea-brainstorming` use the shared `ea-read-test` agent to check that the current artifact reads clearly before lock or handoff.
 
 Current support skills:
 

@@ -244,7 +244,6 @@ Primary in-session workflow surface:
 - `$ea-north-star`
 - `$ea-milestone`
 - `$ea-brainstorming`
-- `$ea-blueprint`
 - `$ea-planning`
 - `$ea-execute`
 - `$ea-qa`
@@ -264,6 +263,9 @@ The current global setup does not install that wrapper into `~/.codex/`.
 `ea-doctor` is the read-only health check skill.
 
 Current agent roster:
+
+Shared read-test agents:
+- `ea-read-test`
 
 Planning agents:
 - `ea-explorer`
@@ -290,8 +292,8 @@ Current note:
 - `$ea-north-star` is the goal-lock surface when the target is fuzzy and drift risk is high, and it starts by preparing a dedicated worktree for that target.
 - `$ea-milestone` splits a locked goal into ordered output milestones.
 - `$ea-brainstorming` is the bounded code-design brainstorming surface after one code milestone is chosen and before ea-planning.
+- `$ea-north-star`, `$ea-milestone`, and `$ea-brainstorming` use `ea-read-test` before locking or handoff, unless the user explicitly accepts the remaining risk.
 - Calling `$ea-brainstorming` on a code milestone uses `ea-senior-engineer` by default for read-only codebase design lenses.
-- `$ea-blueprint` remains available for older design-spec flows, but the current code path uses `$ea-brainstorming`.
 - `$ea-planning` is the execution planning surface after direction is clear enough.
 - `$ea-execute` is the TC-first execution surface after an approved ea-planning handoff and before `$ea-qa`.
 - Calling `$ea-execute` is an explicit request to use the `ea-worker` subagent for implementation work; the main LLM stays the controller.
