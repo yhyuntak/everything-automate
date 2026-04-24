@@ -13,6 +13,11 @@ covers:
 
 # Research Docs
 
+This index now separates current reference docs from older design drafts.
+
+Use the historical section for context only.
+Those notes can mention older paths, older skill names, or pre-Codex-only design ideas.
+
 ## Ralph Loop Analysis
 
 - `docs/research/ralph-loop/00-ralph-loop-concept.md`
@@ -30,16 +35,20 @@ covers:
 - `docs/research/ralph-loop/06-claude-automate-evaluation.md`
   Evaluation of `claude-automate` against the Ralph loop concept and its missing runtime primitives.
 
-## Draft Specs
+## Current Reference Specs
 
-- `docs/specs/everything-automate-loop-kernel-draft.md`
-  Draft canonical flow, runtime state, and kernel primitives for a reusable `everything-automate` harness.
-- `docs/specs/everything-automate-planning-workflow.md`
-  Canonical planning workflow for Codex-first in-session use, including the 4-agent roster and system prompt contract for Ralph-ready execution handoff.
 - `docs/specs/everything-automate-operating-principles.md`
   Korean operating principles for writing and maintaining `everything-automate` documents as durable, time-independent sources of truth.
 - `docs/specs/everything-automate-implementation-milestones.md`
-  Current milestone plan for rebuilding Everything Automate around the user-facing flow: `brainstorming -> planning -> execute -> qa -> commit`.
+  Current milestone view for the Codex-only EA direction.
+
+## Historical Draft Specs
+
+These docs are kept for design history.
+They are not the current runtime contract.
+
+- `docs/specs/everything-automate-loop-kernel-draft.md`
+  Early kernel draft for a reusable harness before the current EA workflow and Codex-only narrowing.
 - `docs/specs/everything-automate-loop-state-contract.md`
   M1 contract for the shared task-scoped loop state used by the v0 kernel.
 - `docs/specs/everything-automate-plan-artifact-contract.md`
@@ -49,14 +58,16 @@ covers:
 - `docs/specs/everything-automate-stage-transition-contract.md`
   M1 contract for stage transitions and the v0 decision engine.
 - `docs/specs/everything-automate-runtime-flow.md`
-  M2 document connecting the v0 contracts into an actual outer flow and inner loop runtime sequence.
+  M2 runtime-flow draft from the earlier provider-era design phase.
 - `docs/specs/everything-automate-codex-execution-model.md`
-  Codex-first operating model defining in-session planning, external EA launcher execution, and the initial `ea codex ...` command surface.
+  Earlier Codex execution-model draft from the pre-`ea-*` workflow stage.
 - `docs/specs/everything-automate-codex-execute-hardening.md`
-  Current M5 working document for validating and strengthening the Codex `execute` contract, especially handoff consumption, verify/decide semantics, retry, and state/runtime gaps.
+  Earlier execute-hardening draft from the pre-`ea-execute` workflow stage.
+- `docs/specs/everything-automate-planning-workflow.md`
+  Earlier planning-workflow draft from the pre-`ea-planning` workflow stage.
 - `docs/specs/everything-automate-provider-entry-bootstrap-mapping.md`
-  M3 document defining provider-specific install surfaces, entry files, bootstrap mechanisms, and the shared intake boundary.
+  Provider-entry mapping draft kept as history after the repo became Codex-only.
 - `docs/specs/everything-automate-resume-cancel-contract.md`
-  M4 contract for resumable runs, explicit cancellation semantics, terminal-reason separation, and artifact preservation.
+  Resume/cancel draft from the earlier provider-neutral analysis phase.
 - `docs/specs/everything-automate-claude-m4-pause-notes.md`
-  Decision note capturing what was learned from Claude Code M4 exploration and why implementation order is temporarily shifting to Codex first.
+  Claude exploration pause note kept only for historical context.

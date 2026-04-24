@@ -113,7 +113,7 @@ Expected evidence:
 
 ### TC1.2
 
-Read `templates/codex/INSTALL.md`.
+Read `templates/INSTALL.md`.
 
 Expected evidence:
 

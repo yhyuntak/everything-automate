@@ -40,4 +40,4 @@ The installer should preserve unrelated user config and avoid adding duplicate m
 
 - .everything-automate/plans/2026-04-24-global-codex-config-features-v1.md
 - scripts/install_global.py
-- templates/codex/INSTALL.md
+- templates/INSTALL.md

@@ -49,6 +49,6 @@ The accepted migration shape is:
 ## Related Plans Or Files
 
 - README.md
-- templates/codex/INSTALL.md
+- templates/INSTALL.md
 - scripts/install_global.py
 - .everything-automate/plans/2026-04-24-codex-only-bootstrap-setup-v1.md

@@ -21,8 +21,8 @@ The skill guides the current project session through fixing Everything Automate 
 The default runtime update path is global install:
 
 ```bash
-python3 scripts/install_global.py setup --provider codex
-python3 scripts/install_global.py doctor --provider codex
+python3 scripts/install_global.py setup
+python3 scripts/install_global.py doctor
 ```
 
 The skill does not make project-local `.codex` cleanup, sync, or link mode the main workflow.
@@ -40,6 +40,6 @@ The skill does not make project-local `.codex` cleanup, sync, or link mode the m
 ## Related Plans Or Files
 
 - .everything-automate/plans/2026-04-23-ea-upstream-skill.md
-- templates/codex/skills/ea-upstream/SKILL.md
-- templates/codex/skills/README.md
-- templates/codex/INSTALL.md
+- templates/skills/ea-upstream/SKILL.md
+- templates/skills/README.md
+- templates/INSTALL.md

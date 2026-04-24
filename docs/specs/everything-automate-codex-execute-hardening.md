@@ -9,14 +9,21 @@ scope:
   - retry
   - state
 covers:
-  - templates/codex/skills/execute/SKILL.md
-  - templates/codex/skills/planning/SKILL.md
+  - templates/skills/ea-execute/SKILL.md
+  - templates/skills/ea-planning/SKILL.md
   - runtime/ea_state.py
   - runtime/ea_codex.py
   - scripts/install_global.py
 ---
 
 # Codex Execute Hardening
+
+## Historical Note
+
+This document is kept as design history.
+
+It predates the current `ea-execute` and `ea-planning` skill names.
+Read it as an earlier hardening draft, not as the current execution contract.
 
 이 문서는 현재 active 마일스톤인 `M5`를 구체화한다.
 

@@ -17,7 +17,7 @@ open_risks:
   - Deduping only the managed keys must not accidentally rewrite unrelated `features` entries.
   - Doctor output can become noisy if config status is mixed into the current asset-only report without a clear shape.
   - Doctor should fail when the required config flags are incomplete, so the install contract needs to say that clearly.
-test_command: python3 scripts/install_global.py setup --provider codex --codex-home <tmp-dir> && python3 scripts/install_global.py doctor --provider codex --codex-home <tmp-dir>
+test_command: python3 scripts/install_global.py setup --codex-home <tmp-dir> && python3 scripts/install_global.py doctor --codex-home <tmp-dir>
 ---
 
 # Requirements Summary
@@ -34,7 +34,7 @@ test_command: python3 scripts/install_global.py setup --provider codex --codex-h
 
 After this work:
 
-- `python3 scripts/install_global.py setup --provider codex` ensures the three EA feature flags exist in `~/.codex/config.toml`.
+- `python3 scripts/install_global.py setup` ensures the three EA feature flags exist in `~/.codex/config.toml`.
 - Running setup again does not duplicate those keys or create repeated `[features]` blocks.
 - Existing non-EA config remains intact.
 - `doctor` and the install docs reflect that `config.toml` is now part of the managed Codex setup surface.
@@ -101,7 +101,7 @@ Use install and config verification checks:
 Run setup into an empty temp Codex home:
 
 ```bash
-python3 scripts/install_global.py setup --provider codex --codex-home <tmp-dir>
+python3 scripts/install_global.py setup --codex-home <tmp-dir>
 ```
 
 Expected evidence:
@@ -153,7 +153,7 @@ Expected evidence:
 Run:
 
 ```bash
-python3 scripts/install_global.py doctor --provider codex --codex-home <tmp-dir>
+python3 scripts/install_global.py doctor --codex-home <tmp-dir>
 ```
 
 Expected evidence:
@@ -175,7 +175,7 @@ Docs no longer describe `config.toml` as outside the managed setup surface.
 
 ### TC4.1
 
-Read `templates/codex/INSTALL.md`.
+Read `templates/INSTALL.md`.
 
 Expected evidence:
 

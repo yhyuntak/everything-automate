@@ -9,13 +9,20 @@ scope:
   - ralph loop
   - execution model
 covers:
-  - templates/codex/
+  - templates/
   - runtime/ea_state.py
   - docs/specs/everything-automate-runtime-flow.md
   - docs/specs/everything-automate-implementation-milestones.md
 ---
 
 # Everything Automate Codex Execution Model
+
+## Historical Note
+
+This document is kept as design history.
+
+It predates the current `ea-*` workflow names and still describes earlier surfaces such as `deep-interview` and `ralph`.
+Read it as an older Codex execution-model draft, not as the current workflow contract.
 
 ## 목적
 

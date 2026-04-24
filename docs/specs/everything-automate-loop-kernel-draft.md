@@ -19,6 +19,13 @@ covers:
 
 # Everything Automate Loop Kernel Draft
 
+## Historical Note
+
+This document is kept as design history.
+
+It predates the current `ea-*` workflow and the Codex-only repo direction.
+Read it as an early kernel draft, not as the current runtime contract.
+
 ## Why This Exists
 
 The reference repos converge on one useful center:

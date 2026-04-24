@@ -17,6 +17,13 @@ covers:
 
 # Everything Automate Resume and Cancel Contract
 
+## Historical Note
+
+This document is kept as design history.
+
+It was written during the earlier provider-neutral analysis phase.
+Read it as a runtime-design draft, not as the current Codex-only setup contract.
+
 ## 목적
 
 이 문서는 `M4`에서 다음 질문에 답한다.

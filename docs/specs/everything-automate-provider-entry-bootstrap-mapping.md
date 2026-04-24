@@ -17,6 +17,13 @@ covers:
 
 # Everything Automate Provider Entry and Bootstrap Mapping
 
+## Historical Note
+
+This document is kept as design history.
+
+It predates the current Codex-only repo direction and the flat `templates/` runtime root.
+Read it as an older provider-era analysis note, not as the current setup contract.
+
 ## 목적
 
 이 문서는 `M3` 단계에서 다음 질문에 답한다.

@@ -12,10 +12,17 @@ covers:
   - docs/specs/everything-automate-plan-artifact-contract.md
   - docs/specs/everything-automate-codex-execution-model.md
   - docs/specs/everything-automate-implementation-milestones.md
-  - templates/codex/
+  - templates/
 ---
 
 # Everything Automate Planning Workflow
+
+## Historical Note
+
+This document is kept as design history.
+
+It predates the current `ea-brainstorming -> ea-north-star -> ea-blueprint -> ea-planning` workflow.
+Read it as an older planning draft, not as the current skill contract.
 
 ## 목적
 

@@ -15,6 +15,13 @@ covers:
 
 # Everything Automate Claude M4 Pause Notes
 
+## Historical Note
+
+This document is kept as design history.
+
+It refers to the earlier Claude-side exploration and deleted `templates/claude-code/` paths.
+Read it only as a pause note from that earlier branch of work.
+
 ## 왜 이 문서를 남기나
 
 Claude Code 기준으로 `M4`를 바로 구현하려다가, 현재 작업 환경이 Codex이고 Claude의 subagent/task metadata 연결 방식까지 정확히 확인해야 해서 생각 비용이 급격히 커졌다.

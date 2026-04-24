@@ -17,6 +17,13 @@ covers:
 
 # Everything Automate Runtime Flow
 
+## Historical Note
+
+This document is kept as design history.
+
+It was written before the current Codex-only narrowing and still talks about provider-era runtime layering.
+Read it as an older runtime draft, not as the current installed EA flow.
+
 ## 목적
 
 이 문서는 `M1`에서 고정한 계약 문서들을 실제 런타임 순서로 연결한다.
