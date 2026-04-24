@@ -5,14 +5,22 @@ This document tracks the current Codex install shape.
 ## Intended Install Shape
 
 ```text
-python3 scripts/install_global.py setup --provider codex
-  -> ~/.codex/*
-
-start Codex session
-  -> use in-session workflow skills
-  -> handoff execution intent internally
-  -> runtime support prepares state/instructions underneath
+git clone <repo-url>
+cd everything-automate
+python3 scripts/bootstrap.py
+start Codex session in this EA source checkout
+  -> run $ea-setup
+  -> install or repair the full EA runtime when safe
+  -> run $ea-doctor
 ```
+
+Bootstrap is the minimum setup surface.
+`$ea-setup` is the full install and repair surface.
+`$ea-doctor` is the final check.
+
+Bootstrap only seeds the setup entry points.
+Full setup installs the runtime.
+Doctor only checks readiness.
 
 ## Current Surfaces
 
@@ -20,27 +28,64 @@ start Codex session
 - in-session workflow guidance
 - agent prompts under `templates/codex/agents/`
 - workflow skills under `templates/codex/skills/`
+- bootstrap setup skills under `templates/codex/skills/ea-setup/` and `templates/codex/skills/ea-doctor/`
 - workflow prompt hooks under `templates/codex/hooks.json` and `templates/codex/hooks/`
 - global installer: `scripts/install_global.py`
+- bootstrap wrapper: `scripts/bootstrap.py`
 - runtime state tool: `runtime/ea_state.py`
 - Codex runtime helper: `runtime/ea_codex.py`
 - authoring-time wrapper: `templates/codex/overlays/ea-codex.sh`
 
-## Current Workflow Shape
+## Bootstrap
 
-- `$ea-brainstorming`
-- `$ea-north-star`
-- `$ea-blueprint`
-- `$ea-planning`
-- `$ea-execute`
-- `$ea-qa`
+Bootstrap should stay small.
+It should only install what is needed to continue inside Codex:
 
-Current support skills:
+- `AGENTS.md`
+- the `ea-setup` skill
+- the `ea-doctor` skill
 
-- `ea-docs`
-- `ea-issue-capture`
-- `ea-issue-pick`
-- `ea-upstream`
+Bootstrap does not do the full runtime install.
+
+## `$ea-setup`
+
+`$ea-setup` is the main install and repair surface inside Codex.
+It maps to `python3 scripts/install_global.py setup`.
+
+It should:
+
+- inspect the current environment
+- inspect the current EA source checkout and Codex home before changing anything
+- find missing or broken EA global assets
+- install the full runtime when safe
+- repair when possible
+- explain and stop when a risky conflict exists
+- run `$ea-doctor` at the end
+- summarize the result
+
+When the environment is safe, it should install or repair:
+
+- global EA guidance
+- global EA skills
+- global EA agents
+- required EA Codex feature flags
+
+If the environment is risky, it should stop and explain why.
+
+## `$ea-doctor`
+
+`$ea-doctor` checks whether EA is ready inside Codex.
+It maps to `python3 scripts/install_global.py doctor`.
+
+It should:
+
+- check the expected global EA assets
+- check the required Codex feature flags
+- report pass or fail
+- explain what is still missing or broken
+- stay read-only
+
+It does not install or repair by itself.
 
 ## Local Repo Test Path
 
@@ -54,8 +99,10 @@ For local testing inside this repository:
 Current helper scripts:
 
 - `python3 scripts/install_codex_local_test.py`
-- `python3 scripts/install_global.py setup --provider codex --codex-home <tmp-dir>`
-- `python3 scripts/install_global.py doctor --provider codex --codex-home <tmp-dir>`
+- `python3 scripts/bootstrap.py --codex-home <tmp-dir>`
+- `python3 scripts/install_global.py bootstrap --codex-home <tmp-dir>`
+- `python3 scripts/install_global.py setup --codex-home <tmp-dir>`
+- `python3 scripts/install_global.py doctor --codex-home <tmp-dir>`
 - `bash scripts/test_codex_planning.sh [slug]`
 
 Note:
@@ -85,12 +132,13 @@ After setup, the Codex path should:
 - support `status`, `cancel`, and `resume` without forcing the user into a wrapper-first workflow
 - back up replaced global assets before overwriting them
 - expose a minimal `doctor` surface for managed assets
+- keep `ea-setup` and `ea-doctor` available after bootstrap
 
 ## Status
 
 This is now a partial implementation guide.
 The current runtime helper exists, and the active user-facing Codex workflow skills right now are `$ea-brainstorming`, `$ea-north-star`, `$ea-blueprint`, `$ea-planning`, `$ea-execute`, and `$ea-qa`.
-The current installed support skills right now are `ea-docs`, `ea-issue-capture`, `ea-issue-pick`, and `ea-upstream`.
+The current installed support skills right now are `ea-setup`, `ea-doctor`, `ea-docs`, `ea-issue-capture`, `ea-issue-pick`, and `ea-upstream`.
 The current global setup v0 is:
 
 - `setup`
@@ -103,7 +151,7 @@ The current global setup v0 is:
   - materialize `~/.codex/hooks.json`
   - materialize `~/.codex/hooks/`
   - materialize `~/.codex/agents/*.toml`
-  - materialize `~/.codex/skills/{ea-brainstorming,ea-north-star,ea-blueprint,ea-planning,ea-execute,ea-qa,ea-docs,ea-issue-capture,ea-issue-pick,ea-upstream}/`
+  - materialize `~/.codex/skills/{ea-brainstorming,ea-north-star,ea-blueprint,ea-planning,ea-execute,ea-qa,ea-setup,ea-doctor,ea-docs,ea-issue-capture,ea-issue-pick,ea-upstream}/`
   - write a managed install manifest under `~/.codex/everything-automate/`
   - back up replaced assets under `~/.codex/backups/<timestamp>/`
 - `doctor`
@@ -111,4 +159,4 @@ The current global setup v0 is:
   - report found and missing managed assets
   - report required EA config feature status and exit non-zero when it is incomplete or invalid
   - report latest manifest path and status
-Other workflow surfaces and provider adapters should be added only after their contracts are explicitly agreed.
+Other workflow surfaces and runtime adapters should be added only after their contracts are explicitly agreed.

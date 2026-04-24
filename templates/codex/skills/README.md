@@ -20,13 +20,17 @@ Current active in-session workflow surface:
 
 Support skills:
 
+- `ea-setup/`
+- `ea-doctor/`
 - `ea-docs/`
 - `ea-issue-capture/`
 - `ea-issue-pick/`
 - `ea-upstream/`
 
+`ea-setup/` is the setup and repair surface. Bootstrap installs it first.
+`ea-doctor/` is the read-only health check surface.
 `ea-docs/` sets up, checks, and maintains an LLM Wiki docs structure for project work.
-`ea-issue-capture/` creates a real backlog GitHub issue in `yhyuntak/everything-automate` from another project session.
+`ea-issue-capture/` creates a real backlog GitHub issue in `bboddoFactory/everything-automate` from another project session.
 `ea-issue-pick/` reads one open backlog issue and turns it into input for `$ea-brainstorming`.
 `ea-upstream/` fixes shared Everything Automate harness issues from a project session.
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from bisect import bisect_right
+import os
 import shutil
 import re
 import tomllib
@@ -109,15 +110,10 @@ def copy_with_backup(src: Path, dst: Path, spec: ProviderSpec) -> dict[str, str 
     dst.parent.mkdir(parents=True, exist_ok=True)
     backup_path: Path | None = None
 
-    if dst.exists():
+    if dst.exists() or dst.is_symlink():
         backup_path = spec.backup_root / dst.relative_to(spec.install_root)
-        backup_path.parent.mkdir(parents=True, exist_ok=True)
-        if dst.is_dir():
-            shutil.copytree(dst, backup_path, dirs_exist_ok=True)
-            shutil.rmtree(dst)
-        else:
-            shutil.copy2(dst, backup_path)
-            dst.unlink()
+        backup_existing_path(dst, backup_path)
+        remove_existing_path(dst)
 
     if src.is_dir():
         shutil.copytree(src, dst)
@@ -133,14 +129,8 @@ def copy_with_backup(src: Path, dst: Path, spec: ProviderSpec) -> dict[str, str 
 
 def remove_with_backup(path: Path, spec: ProviderSpec) -> dict[str, str | None]:
     backup_path = spec.backup_root / path.relative_to(spec.install_root)
-    backup_path.parent.mkdir(parents=True, exist_ok=True)
-
-    if path.is_dir():
-        shutil.copytree(path, backup_path, dirs_exist_ok=True)
-        shutil.rmtree(path)
-    else:
-        shutil.copy2(path, backup_path)
-        path.unlink()
+    backup_existing_path(path, backup_path)
+    remove_existing_path(path)
 
     return {
         "target": str(path),
@@ -152,11 +142,10 @@ def render_agent_with_backup(agent_md: Path, dst: Path, spec: ProviderSpec) -> d
     dst.parent.mkdir(parents=True, exist_ok=True)
     backup_path: Path | None = None
 
-    if dst.exists():
+    if dst.exists() or dst.is_symlink():
         backup_path = spec.backup_root / dst.relative_to(spec.install_root)
-        backup_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(dst, backup_path)
-        dst.unlink()
+        backup_existing_path(dst, backup_path)
+        remove_existing_path(dst)
 
     agent = load_agent_definition(agent_md)
     toml = render_agent_toml(
@@ -175,6 +164,28 @@ def render_agent_with_backup(agent_md: Path, dst: Path, spec: ProviderSpec) -> d
     }
 
 
+def backup_existing_path(path: Path, backup_path: Path) -> None:
+    backup_path.parent.mkdir(parents=True, exist_ok=True)
+    remove_existing_path(backup_path)
+
+    if path.is_symlink():
+        backup_path.symlink_to(os.readlink(path), target_is_directory=path.is_dir())
+        return
+
+    if path.is_dir():
+        shutil.copytree(path, backup_path, dirs_exist_ok=True)
+        return
+
+    shutil.copy2(path, backup_path)
+
+
+def remove_existing_path(path: Path) -> None:
+    if path.is_symlink() or path.is_file():
+        path.unlink()
+    elif path.is_dir():
+        shutil.rmtree(path)
+
+
 def write_manifest(
     spec: ProviderSpec,
     *,
@@ -186,6 +197,8 @@ def write_manifest(
     error: str | None = None,
 ) -> None:
     spec.manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    if spec.manifest_path.is_symlink():
+        remove_existing_path(spec.manifest_path)
     manifest = {
         "tool": "everything-automate",
         "provider": spec.name,
@@ -226,12 +239,20 @@ def codex_asset_targets(spec: ProviderSpec) -> list[tuple[str, Path, Path]]:
     return assets
 
 
+def bootstrap_asset_targets(spec: ProviderSpec) -> list[tuple[str, Path, Path]]:
+    return [
+        ("file", spec.template_root / "AGENTS.md", spec.install_root / "AGENTS.md"),
+        ("dir", spec.template_root / "skills" / "ea-setup", spec.skills_root / "ea-setup"),
+        ("dir", spec.template_root / "skills" / "ea-doctor", spec.skills_root / "ea-doctor"),
+    ]
+
+
 def remove_legacy_managed_assets(spec: ProviderSpec) -> list[dict[str, str | None]]:
     removed: list[dict[str, str | None]] = []
 
     for filename in LEGACY_MANAGED_AGENT_FILES:
         path = spec.agents_root / filename
-        if not path.exists():
+        if not path.exists() and not path.is_symlink():
             continue
         result = remove_with_backup(path, spec)
         result["kind"] = "legacy-agent"
@@ -239,7 +260,7 @@ def remove_legacy_managed_assets(spec: ProviderSpec) -> list[dict[str, str | Non
 
     for dirname in LEGACY_MANAGED_SKILL_DIRS:
         path = spec.skills_root / dirname
-        if not path.exists():
+        if not path.exists() and not path.is_symlink():
             continue
         result = remove_with_backup(path, spec)
         result["kind"] = "legacy-skill"
@@ -599,11 +620,60 @@ def validate_config_toml(text: str) -> None:
         raise RuntimeError(f"config.toml is invalid TOML after setup: {exc}") from exc
 
 
+def run_bootstrap(spec: ProviderSpec) -> int:
+    installed_assets: list[dict[str, str | None]] = []
+    bootstrap_assets = bootstrap_asset_targets(spec)
+    failed_asset = bootstrap_assets[0][2]
+
+    try:
+        for asset_kind, src, dst in bootstrap_assets:
+            failed_asset = dst
+            if asset_kind == "agent":
+                result = render_agent_with_backup(src, dst, spec)
+            else:
+                result = copy_with_backup(src, dst, spec)
+            result["kind"] = asset_kind
+            installed_assets.append(result)
+    except Exception as exc:  # pragma: no cover - failure path exercised manually
+        write_manifest(
+            spec,
+            status="bootstrap-failed",
+            installed_assets=installed_assets,
+            failed_asset=str(failed_asset),
+            error=str(exc),
+        )
+        print("everything-automate bootstrap failed.", file=sys.stderr)
+        print(f"- failed asset: {failed_asset}", file=sys.stderr)
+        print(f"- error: {exc}", file=sys.stderr)
+        if installed_assets:
+            print("- installed so far:", file=sys.stderr)
+            for asset in installed_assets:
+                print(f"  - {asset['target']}", file=sys.stderr)
+        print(f"- manifest: {spec.manifest_path}", file=sys.stderr)
+        return 1
+
+    write_manifest(
+        spec,
+        status="bootstrap",
+        installed_assets=installed_assets,
+    )
+
+    print("Installed Everything Automate bootstrap surface.")
+    print(f"- install root: {spec.install_root}")
+    print(f"- manifest: {spec.manifest_path}")
+    print("- installed assets:")
+    for asset in installed_assets:
+        print(f"  - {asset['target']}")
+    return 0
+
+
 def ensure_codex_config_features(spec: ProviderSpec) -> dict[str, str | None]:
     config_path = codex_config_path(spec)
     config_path.parent.mkdir(parents=True, exist_ok=True)
 
-    existing_text = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
+    existing_text = ""
+    if config_path.exists():
+        existing_text = config_path.read_text(encoding="utf-8")
     if has_conflicting_top_level_features_definition(existing_text):
         raise RuntimeError(
             "config.toml already defines top-level `features` data or root `features.*` "
@@ -622,10 +692,10 @@ def ensure_codex_config_features(spec: ProviderSpec) -> dict[str, str | None]:
             "backup_path": None,
         }
 
-    if config_path.exists():
+    if config_path.exists() or config_path.is_symlink():
         backup_path = spec.backup_root / config_path.relative_to(spec.install_root)
-        backup_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(config_path, backup_path)
+        backup_existing_path(config_path, backup_path)
+        remove_existing_path(config_path)
 
     config_path.write_text(updated_text, encoding="utf-8")
     return {
@@ -645,7 +715,8 @@ def run_setup(spec: ProviderSpec) -> int:
         config_result["kind"] = "config"
         installed_assets.append(config_result)
 
-        for asset_kind, src, dst in codex_asset_targets(spec):
+        full_assets = codex_asset_targets(spec)
+        for asset_kind, src, dst in full_assets:
             failed_asset = dst
             if asset_kind == "agent":
                 result = render_agent_with_backup(src, dst, spec)
@@ -681,7 +752,7 @@ def run_setup(spec: ProviderSpec) -> int:
         removed_legacy_assets=removed_legacy_assets,
     )
 
-    print("Installed everything-automate global Codex setup.")
+    print("Installed Everything Automate full Codex setup.")
     print(f"- install root: {spec.install_root}")
     print(f"- backup root: {spec.backup_root}")
     print(f"- manifest: {spec.manifest_path}")
@@ -706,51 +777,85 @@ def run_doctor(spec: ProviderSpec) -> int:
         else:
             missing_assets.append(str(dst))
 
-    manifest_path = spec.manifest_path if spec.manifest_path.exists() else None
+    manifest_path = (
+        spec.manifest_path
+        if spec.manifest_path.exists() or spec.manifest_path.is_symlink()
+        else None
+    )
     latest_status = "unknown"
+    manifest_parse_error: str | None = None
     if manifest_path:
-        manifest = json.loads(spec.manifest_path.read_text(encoding="utf-8"))
-        latest_status = manifest.get("status", "unknown")
+        try:
+            manifest = json.loads(spec.manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            latest_status = "invalid"
+            manifest_parse_error = str(exc)
+        else:
+            latest_status = manifest.get("status", "unknown")
 
     config_path = codex_config_path(spec)
-    config_text = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
+    config_text = ""
+    config_read_error: str | None = None
+    if config_path.exists():
+        try:
+            config_text = config_path.read_text(encoding="utf-8")
+        except OSError as exc:
+            config_read_error = str(exc)
     config_state = None
     config_values: dict[str, object | None] = {key: None for key in CONFIG_FEATURE_KEYS}
     config_parse_error: str | None = None
     config_conflict = False
     has_features_block = False
-    try:
-        config_conflict = has_conflicting_top_level_features_definition(config_text)
-    except RuntimeError as exc:
-        config_parse_error = str(exc)
+    if config_read_error is None:
+        try:
+            config_conflict = has_conflicting_top_level_features_definition(config_text)
+        except RuntimeError as exc:
+            config_parse_error = str(exc)
 
-    try:
-        config_state = inspect_config_feature_lines(config_text)
-        has_features_block = bool(config_state["has_features_block"])
-    except RuntimeError as exc:
-        config_parse_error = str(exc)
+        try:
+            config_state = inspect_config_feature_lines(config_text)
+            has_features_block = bool(config_state["has_features_block"])
+        except RuntimeError as exc:
+            config_parse_error = str(exc)
 
-    if config_parse_error is None:
-        parsed_state = inspect_config_features(config_text)
-        config_values = parsed_state["values"]
-        config_parse_error = parsed_state["parse_error"]
-        if config_state is None:
-            has_features_block = bool(parsed_state["has_features_block"])
+        if config_parse_error is None:
+            parsed_state = inspect_config_features(config_text)
+            config_values = parsed_state["values"]
+            config_parse_error = parsed_state["parse_error"]
+            if config_state is None:
+                has_features_block = bool(parsed_state["has_features_block"])
 
     config_complete = (
-        config_parse_error is None
+        config_read_error is None
+        and config_parse_error is None
         and not config_conflict
         and has_features_block
         and all(config_values[key] is True for key in CONFIG_FEATURE_KEYS)
     )
+    legacy_assets = [
+        *(spec.agents_root / filename for filename in LEGACY_MANAGED_AGENT_FILES),
+        *(spec.skills_root / dirname for dirname in LEGACY_MANAGED_SKILL_DIRS),
+    ]
+    found_legacy = [
+        str(path) for path in legacy_assets if path.exists() or path.is_symlink()
+    ]
+    ready = (
+        not missing_assets
+        and config_complete
+        and not found_legacy
+        and manifest_parse_error is None
+    )
 
     print("everything-automate doctor")
-    print(f"- provider: {spec.name}")
+    print(f"- target: {spec.name}")
     print(f"- managed install root: {spec.install_root}")
     print(f"- managed assets found: {len(found_assets)}")
     print(f"- missing assets: {len(missing_assets)}")
     print(f"- latest manifest path: {manifest_path if manifest_path else '(none)'}")
     print(f"- latest manifest status: {latest_status}")
+    if manifest_parse_error is not None:
+        print(f"- latest manifest parse error: {manifest_parse_error}")
+    print(f"- ready: {'yes' if ready else 'no'}")
 
     if found_assets:
         print("- found:")
@@ -759,7 +864,9 @@ def run_doctor(spec: ProviderSpec) -> int:
 
     print(f"- managed config path: {config_path}")
     print(f"- required config feature flags present: {'yes' if config_complete else 'no'}")
-    if config_parse_error is not None:
+    if config_read_error is not None:
+        print(f"- config TOML: unreadable ({config_read_error})")
+    elif config_parse_error is not None:
         print(f"- config TOML: invalid ({config_parse_error})")
     elif config_conflict:
         print(
@@ -782,11 +889,6 @@ def run_doctor(spec: ProviderSpec) -> int:
     else:
         print("- config feature flags: missing [features] block")
 
-    legacy_assets = [
-        *(spec.agents_root / filename for filename in LEGACY_MANAGED_AGENT_FILES),
-        *(spec.skills_root / dirname for dirname in LEGACY_MANAGED_SKILL_DIRS),
-    ]
-    found_legacy = [str(path) for path in legacy_assets if path.exists()]
     if found_legacy:
         print("- legacy managed assets still present:")
         for asset in found_legacy:
@@ -799,7 +901,7 @@ def run_doctor(spec: ProviderSpec) -> int:
             print(f"  - {asset}")
         return 1
 
-    if not config_complete:
+    if not config_complete or manifest_parse_error is not None:
         return 1
 
     return 0
@@ -807,18 +909,18 @@ def run_doctor(spec: ProviderSpec) -> int:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Install everything-automate templates into a provider global root."
+        description="Manage the Codex Everything Automate runtime."
     )
     parser.add_argument(
         "command",
-        choices=("setup", "doctor"),
+        choices=("bootstrap", "setup", "doctor"),
         help="Installer command to run.",
     )
     parser.add_argument(
         "--provider",
         default="codex",
         choices=("codex",),
-        help="Provider adapter/spec to materialize.",
+        help="Compatibility flag; only codex is supported.",
     )
     parser.add_argument(
         "--codex-home",
@@ -836,6 +938,8 @@ def main() -> int:
         raise ValueError(f"Unsupported provider: {args.provider}")
 
     spec = build_codex_spec(args.codex_home)
+    if args.command == "bootstrap":
+        return run_bootstrap(spec)
     if args.command == "setup":
         return run_setup(spec)
     return run_doctor(spec)

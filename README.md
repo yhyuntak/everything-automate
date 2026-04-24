@@ -1,24 +1,25 @@
 ---
 title: Everything Automate
-description: Codex-first reusable agent workflow project with ea-north-star, ea-blueprint, ea-planning, ea-execute, and global Codex setup.
+description: Codex-first workflow project with bootstrap install and in-session setup.
 doc_type: guide
 scope:
   - project overview
-  - codex
-  - setup
-  - workflow
+  - first-time setup
+  - codex workflow
 covers:
   - templates/codex/
-  - scripts/install_global.py
+  - scripts/
   - docs/
 ---
 
 # Everything Automate
 
-`everything-automate` is a reusable agent workflow project.
+Everything Automate is a Codex-only workflow project.
 
-Right now the active implementation path is **Codex-first**.
-The current in-session workflow is:
+The main user experience is inside the Codex session.
+The workflow starts in Codex and continues with EA skills.
+
+Current main workflow:
 
 ```text
 $ea-brainstorming
@@ -29,7 +30,168 @@ $ea-brainstorming
   -> $ea-qa
 ```
 
-## What It Does
+## What This Project Is
+
+Everything Automate gives you:
+
+- a clear in-session workflow
+- reusable EA skills
+- reusable EA agents
+- setup and doctor support for Codex
+
+The goal is not to push the user into wrappers or hidden runtime tools.
+The goal is to make the main workflow work inside Codex.
+
+## First-Time Setup
+
+For a first-time user, setup happens in four steps:
+
+1. run bootstrap outside Codex
+2. open Codex in this EA source checkout
+3. run `$ea-setup`
+4. let `$ea-doctor` confirm the result
+
+```text
+[Get Everything Automate source]
+   |
+   v
+[Run bootstrap]
+   |
+   v
+[Open Codex]
+   |
+   v
+[Run $ea-setup]
+   |
+   v
+[Install or repair full EA runtime when safe]
+   |
+   v
+[Run $ea-doctor]
+   |
+   v
+[Ready to use EA workflow]
+```
+
+### Step 1. Get the source
+
+Clone this repository first.
+
+```bash
+git clone <repo-url>
+cd everything-automate
+```
+
+### Step 2. Run bootstrap
+
+Run one bootstrap command from this repository.
+
+```bash
+python3 scripts/bootstrap.py
+```
+
+Bootstrap installs only the minimum global setup surface.
+Its job is to install `AGENTS.md`, `$ea-setup`, and `$ea-doctor`.
+
+Bootstrap does not do the full install.
+
+### Step 3. Open Codex
+
+Start a normal Codex session in this EA source checkout.
+
+### Step 4. Run `$ea-setup`
+
+Inside Codex, with this checkout open, run:
+
+```text
+$ea-setup
+```
+
+`ea-setup` is the in-session route to:
+
+```bash
+python3 scripts/install_global.py setup
+```
+
+It checks your environment and decides whether it can:
+
+- install
+- update
+- repair
+- or stop and explain a problem
+
+It should inspect the current EA source and Codex home before changing anything.
+
+When the environment is safe, `ea-setup` installs or repairs the full EA runtime.
+It then runs `$ea-doctor` automatically.
+
+That includes:
+
+- global EA guidance
+- global EA skills
+- global EA agents
+- required EA Codex feature flags
+
+If the environment is risky, `ea-setup` explains the problem and stops.
+
+### Step 5. Start normal EA workflow
+
+After setup is ready, use the normal EA workflow inside Codex.
+
+## What Bootstrap Installs
+
+Bootstrap installs only the smallest setup surface needed to continue in Codex.
+
+That minimum surface should include:
+
+- `AGENTS.md`
+- the `ea-setup` skill
+- the `ea-doctor` skill
+
+Bootstrap should stay small.
+It should not try to own the full runtime install.
+
+## What `$ea-setup` Does
+
+`$ea-setup` is the main setup workflow inside Codex.
+It maps to `python3 scripts/install_global.py setup`.
+
+It should:
+
+- inspect the current environment
+- find missing or broken EA global assets
+- run the full install when safe
+- run repair when possible
+- explain and stop when a risky conflict exists
+- run `$ea-doctor` at the end
+- summarize the result
+
+## What `$ea-doctor` Does
+
+`$ea-doctor` checks whether EA is ready inside Codex.
+It maps to `python3 scripts/install_global.py doctor`.
+
+It should:
+
+- check the expected global EA assets
+- check the required Codex feature flags
+- report pass or fail
+- explain what is still missing or broken
+- stay read-only
+
+`$ea-doctor` checks state.
+It does not install or repair by itself.
+
+## What Ready Means
+
+EA is ready when:
+
+- required global EA assets are installed
+- required Codex feature flags are present
+- doctor passes
+- the main EA workflow skills are available in Codex
+
+## Main Workflow Skills
 
 - `$ea-brainstorming`
   helps turn a vague idea into a clear direction
@@ -44,11 +206,14 @@ $ea-brainstorming
 - `$ea-qa`
   reviews finished work before commit
 
-Under the hood, the project also has:
+Current support skills:
 
-- runtime state helpers
-- a global Codex installer
-- design docs and milestone docs
+- `ea-setup`
+- `ea-doctor`
+- `ea-docs`
+- `ea-issue-capture`
+- `ea-issue-pick`
+- `ea-upstream`
 
 ## Current Status
 
@@ -63,55 +228,25 @@ Not current active scope here:
 - full Claude adaptation
 - internal service adapter
 
-## Global Codex Setup
+## Current Direction
 
-Install into `~/.codex` with:
+The install direction is:
 
-```bash
-python3 scripts/install_global.py setup --provider codex
-```
-
-Check install state with:
-
-```bash
-python3 scripts/install_global.py doctor --provider codex
-```
-
-Doctor exits non-zero when the required config flags are incomplete or invalid.
-
-Current global install writes:
-
-- `~/.codex/AGENTS.md`
-- `~/.codex/hooks.json`
-- `~/.codex/hooks/`
-- `~/.codex/agents/*.toml`
-- `~/.codex/skills/ea-brainstorming/`
-- `~/.codex/skills/ea-north-star/`
-- `~/.codex/skills/ea-blueprint/`
-- `~/.codex/skills/ea-planning/`
-- `~/.codex/skills/ea-execute/`
-- `~/.codex/skills/ea-qa/`
-- `~/.codex/skills/ea-docs/`
-- `~/.codex/skills/ea-issue-capture/`
-- `~/.codex/skills/ea-issue-pick/`
-- `~/.codex/skills/ea-upstream/`
-
-It also:
-
-- writes an install manifest under `~/.codex/everything-automate/`
-- creates backups under `~/.codex/backups/<timestamp>/`
-- ensures the three required EA feature flags in `~/.codex/config.toml` and leaves the rest of that file user-owned
+- small bootstrap first
+- real setup inside Codex
+- workflow-first user experience
+- runtime helpers underneath, not as the main UX
 
 ## Project Layout
 
 - `templates/`
   distributable template source of truth
 - `scripts/`
-  setup and helper scripts
+  bootstrap, install, and doctor helpers
 - `runtime/`
-  shared runtime/state helpers
+  runtime and state helpers
 - `docs/`
-  research, specs, and milestone tracking
+  design notes, specs, and milestone docs
 
 ## Main Docs
 
@@ -122,7 +257,7 @@ It also:
 - [docs/specs/everything-automate-codex-ea-execute-hardening.md](docs/specs/everything-automate-codex-ea-execute-hardening.md)
   current `M5` working document
 - [templates/codex/INSTALL.md](templates/codex/INSTALL.md)
-  Codex install shape
+  current Codex install shape
 
 ## Language Rule
 

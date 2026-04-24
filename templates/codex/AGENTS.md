@@ -252,10 +252,15 @@ Current internal support surface in this source repo:
 
 - `runtime/ea_codex.py`
 - `templates/codex/overlays/ea-codex.sh`
+- `templates/codex/skills/ea-setup/`
+- `templates/codex/skills/ea-doctor/`
 
 These helpers are not the intended primary user workflow.
 `ea-codex.sh` is an authoring-time wrapper around `runtime/ea_codex.py`.
 The current global setup does not install that wrapper into `~/.codex/`.
+
+`ea-setup` is the setup and repair skill.
+`ea-doctor` is the read-only health check skill.
 
 Current agent roster:
 
@@ -277,6 +282,7 @@ Docs agents:
 
 Current note:
 
+- `bootstrap` installs only the minimum setup surface needed to reach `$ea-setup` and `$ea-doctor`.
 - `$ea-brainstorming` is the idea-shaping surface before ea-planning.
 - `$ea-north-star` is the goal-lock surface when the target is fuzzy and drift risk is high, and it starts by preparing a dedicated worktree for that target.
 - `$ea-blueprint` is the design-spec surface after North Star and before ea-planning.
