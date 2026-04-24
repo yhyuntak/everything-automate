@@ -150,6 +150,10 @@ The current global setup v0 is:
     - `multi_agent = true`
     - `codex_hooks = true`
     - `default_mode_request_user_input = true`
+  - ensure required EA agent settings in `~/.codex/config.toml`:
+    - only these `[agents]` keys are managed; the rest of `config.toml` stays user-owned
+    - `max_threads = 6`
+    - `max_depth = 1`
   - materialize `~/.codex/hooks.json`
   - materialize `~/.codex/hooks/`
   - materialize `~/.codex/agents/*.toml`

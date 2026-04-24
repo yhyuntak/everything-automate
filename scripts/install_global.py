@@ -50,6 +50,10 @@ CONFIG_FEATURE_KEYS = (
     "codex_hooks",
     "default_mode_request_user_input",
 )
+CONFIG_AGENT_SETTINGS = {
+    "max_threads": "6",
+    "max_depth": "1",
+}
 
 FEATURES_HEADER_RE = re.compile(
     r"^\s*\[\s*(?:features|\"features\"|'features')\s*\]\s*(?:#.*)?$"
@@ -63,7 +67,20 @@ FEATURES_TOP_LEVEL_ASSIGNMENT_RE = re.compile(
 FEATURES_ROOT_DOTTED_ASSIGNMENT_RE = re.compile(
     r"^\s*(?:features|\"features\"|'features')\s*\."
 )
+AGENTS_HEADER_RE = re.compile(
+    r"^\s*\[\s*(?:agents|\"agents\"|'agents')\s*\]\s*(?:#.*)?$"
+)
+AGENTS_ARRAY_HEADER_RE = re.compile(
+    r"^\s*\[\[\s*(?:agents|\"agents\"|'agents')\s*\]\]\s*(?:#.*)?$"
+)
+AGENTS_TOP_LEVEL_ASSIGNMENT_RE = re.compile(
+    r"^\s*(?:agents|\"agents\"|'agents')\s*="
+)
+AGENTS_ROOT_DOTTED_ASSIGNMENT_RE = re.compile(
+    r"^\s*(?:agents|\"agents\"|'agents')\s*\."
+)
 CONFIG_FEATURE_KEY_RE = r"(?:multi_agent|codex_hooks|default_mode_request_user_input)"
+CONFIG_AGENT_KEY_RE = r"(?:max_threads|max_depth)"
 CONFIG_ASSIGNMENT_RE = re.compile(
     r"^\s*(?P<key>(?:'[^']+'|\"[^\"]+\"|[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*))\s*=\s*(?P<value>.*)$"
 )
@@ -72,6 +89,12 @@ MANAGED_CONFIG_FEATURE_RE = re.compile(
 )
 CANONICAL_CONFIG_FEATURE_RE = re.compile(
     rf"^\s*(?P<key>{CONFIG_FEATURE_KEY_RE})\s*=\s*true\s*(?:#.*)?$"
+)
+MANAGED_CONFIG_AGENT_RE = re.compile(
+    rf"^\s*(?:(?P<quoted>['\"](?P<quoted_key>{CONFIG_AGENT_KEY_RE})['\"])|(?P<bare>{CONFIG_AGENT_KEY_RE}))\s*=\s*(?P<value>.*)$"
+)
+CANONICAL_CONFIG_AGENT_RE = re.compile(
+    rf"^\s*(?P<key>{CONFIG_AGENT_KEY_RE})\s*=\s*(?P<value>[0-9]+)\s*(?:#.*)?$"
 )
 
 
@@ -279,6 +302,19 @@ def render_config_features_block(newline: str) -> str:
     )
 
 
+def render_config_agents_block(newline: str) -> str:
+    return "".join(
+        [
+            "[agents]",
+            newline,
+            *[
+                f"{key} = {value}{newline}"
+                for key, value in CONFIG_AGENT_SETTINGS.items()
+            ],
+        ]
+    )
+
+
 def build_line_offsets(lines: list[str]) -> list[int]:
     offsets: list[int] = []
     offset = 0
@@ -454,6 +490,47 @@ def find_features_block_bounds(lines: list[str]) -> tuple[int | None, int | None
     return find_features_block_bounds_from(lines)
 
 
+def find_agents_block_bounds_from(
+    lines: list[str], start_index: int = 0
+) -> tuple[int | None, int | None]:
+    header_index: int | None = None
+    for index in range(start_index, len(lines)):
+        line = lines[index]
+        if AGENTS_HEADER_RE.match(line):
+            header_index = index
+            break
+
+    if header_index is None:
+        return None, None
+
+    text = "".join(lines)
+    line_offsets = build_line_offsets(lines)
+    end_index = len(lines)
+    index = header_index + 1
+    while index < len(lines):
+        stripped = lines[index].lstrip()
+        if stripped.startswith("[") and not stripped.startswith("#"):
+            end_index = index
+            break
+        index = assignment_span_end(lines, text, line_offsets, index)
+
+    return header_index, end_index
+
+
+def find_agents_block_ranges(lines: list[str]) -> list[tuple[int, int]]:
+    ranges: list[tuple[int, int]] = []
+    search_index = 0
+
+    while True:
+        header_index, end_index = find_agents_block_bounds_from(lines, search_index)
+        if header_index is None or end_index is None:
+            break
+        ranges.append((header_index, end_index))
+        search_index = end_index
+
+    return ranges
+
+
 def find_features_block_ranges(lines: list[str]) -> list[tuple[int, int]]:
     ranges: list[tuple[int, int]] = []
     search_index = 0
@@ -498,6 +575,38 @@ def inspect_config_features(text: str) -> dict[str, object]:
     }
 
 
+def inspect_config_agents(text: str) -> dict[str, object]:
+    values: dict[str, object | None] = {
+        key: None for key in CONFIG_AGENT_SETTINGS
+    }
+
+    try:
+        parsed = tomllib.loads(text) if text else {}
+    except tomllib.TOMLDecodeError as exc:
+        return {
+            "parse_error": str(exc),
+            "has_agents_block": False,
+            "values": values,
+        }
+
+    agents = parsed.get("agents")
+    if not isinstance(agents, dict):
+        return {
+            "parse_error": None,
+            "has_agents_block": False,
+            "values": values,
+        }
+
+    for key in CONFIG_AGENT_SETTINGS:
+        values[key] = agents.get(key)
+
+    return {
+        "parse_error": None,
+        "has_agents_block": True,
+        "values": values,
+    }
+
+
 def inspect_config_feature_lines(text: str) -> dict[str, object]:
     lines = text.splitlines(keepends=True)
     block_ranges = find_features_block_ranges(lines)
@@ -527,6 +636,44 @@ def inspect_config_feature_lines(text: str) -> dict[str, object]:
     return {
         "has_features_block": True,
         "feature_block_count": len(block_ranges),
+        "canonical_counts": canonical_counts,
+        "managed_counts": managed_counts,
+    }
+
+
+def inspect_config_agent_lines(text: str) -> dict[str, object]:
+    lines = text.splitlines(keepends=True)
+    block_ranges = find_agents_block_ranges(lines)
+    canonical_counts: dict[str, int] = {key: 0 for key in CONFIG_AGENT_SETTINGS}
+    managed_counts: dict[str, int] = {key: 0 for key in CONFIG_AGENT_SETTINGS}
+
+    if not block_ranges:
+        return {
+            "has_agents_block": False,
+            "agents_block_count": 0,
+            "canonical_counts": canonical_counts,
+            "managed_counts": managed_counts,
+        }
+
+    for header_index, end_index in block_ranges:
+        for line in lines[header_index + 1 : end_index]:
+            match = MANAGED_CONFIG_AGENT_RE.match(line)
+            if not match:
+                continue
+            key = match.group("quoted_key") or match.group("bare")
+            if key is None:
+                continue
+            managed_counts[key] += 1
+            canonical_match = CANONICAL_CONFIG_AGENT_RE.match(line)
+            if (
+                canonical_match
+                and canonical_match.group("value") == CONFIG_AGENT_SETTINGS[key]
+            ):
+                canonical_counts[key] += 1
+
+    return {
+        "has_agents_block": True,
+        "agents_block_count": len(block_ranges),
         "canonical_counts": canonical_counts,
         "managed_counts": managed_counts,
     }
@@ -589,6 +736,66 @@ def build_config_features_text(existing_text: str) -> str:
     return "".join(rebuilt_lines)
 
 
+def build_config_agents_text(existing_text: str) -> str:
+    newline = "\r\n" if "\r\n" in existing_text else "\n"
+    if not existing_text:
+        return render_config_agents_block(newline)
+
+    lines = existing_text.splitlines(keepends=True)
+    text = "".join(lines)
+    line_offsets = build_line_offsets(lines)
+    config_state = inspect_config_agent_lines(existing_text)
+    canonical_counts = config_state["canonical_counts"]
+    managed_counts = config_state["managed_counts"]
+    already_ok = (
+        bool(config_state["has_agents_block"])
+        and config_state["agents_block_count"] == 1
+        and all(
+            canonical_counts[key] == 1 and managed_counts[key] == 1
+            for key in CONFIG_AGENT_SETTINGS
+        )
+    )
+    if already_ok:
+        return existing_text
+
+    agents_block = render_config_agents_block(newline)
+    block_ranges = find_agents_block_ranges(lines)
+
+    if not block_ranges:
+        prefix = existing_text
+        if prefix and not prefix.endswith(("\n", "\r")):
+            prefix += newline
+        return prefix + agents_block
+
+    preserved_lines: list[str] = []
+    for header_index, end_index in block_ranges:
+        index = header_index + 1
+        while index < end_index:
+            span_end = assignment_span_end(lines, text, line_offsets, index)
+            line = lines[index]
+            if MANAGED_CONFIG_AGENT_RE.match(line):
+                index = span_end
+                continue
+            preserved_lines.extend(lines[index:span_end])
+            index = span_end
+
+    rebuilt_lines = [
+        *lines[:block_ranges[0][0]],
+        lines[block_ranges[0][0]],
+        *[
+            f"{key} = {value}{newline}"
+            for key, value in CONFIG_AGENT_SETTINGS.items()
+        ],
+        *preserved_lines,
+    ]
+    cursor = block_ranges[0][1]
+    for header_index, end_index in block_ranges[1:]:
+        rebuilt_lines.extend(lines[cursor:header_index])
+        cursor = end_index
+    rebuilt_lines.extend(lines[cursor:])
+    return "".join(rebuilt_lines)
+
+
 def has_conflicting_top_level_features_definition(existing_text: str) -> bool:
     if not existing_text:
         return False
@@ -606,6 +813,30 @@ def has_conflicting_top_level_features_definition(existing_text: str) -> bool:
         if FEATURES_TOP_LEVEL_ASSIGNMENT_RE.match(line):
             return True
         if FEATURES_ROOT_DOTTED_ASSIGNMENT_RE.match(line):
+            return True
+        if stripped.startswith("["):
+            break
+
+    return False
+
+
+def has_conflicting_top_level_agents_definition(existing_text: str) -> bool:
+    if not existing_text:
+        return False
+
+    lines = existing_text.splitlines(keepends=True)
+    if find_agents_block_ranges(lines):
+        return False
+
+    for line in lines:
+        stripped = line.lstrip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if AGENTS_ARRAY_HEADER_RE.match(line):
+            return True
+        if AGENTS_TOP_LEVEL_ASSIGNMENT_RE.match(line):
+            return True
+        if AGENTS_ROOT_DOTTED_ASSIGNMENT_RE.match(line):
             return True
         if stripped.startswith("["):
             break
@@ -667,7 +898,7 @@ def run_bootstrap(spec: ProviderSpec) -> int:
     return 0
 
 
-def ensure_codex_config_features(spec: ProviderSpec) -> dict[str, str | None]:
+def ensure_codex_config_settings(spec: ProviderSpec) -> dict[str, str | None]:
     config_path = codex_config_path(spec)
     config_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -680,8 +911,14 @@ def ensure_codex_config_features(spec: ProviderSpec) -> dict[str, str | None]:
             "assignments but has no explicit [features] table to patch; refusing to append "
             "a new block"
         )
+    if has_conflicting_top_level_agents_definition(existing_text):
+        raise RuntimeError(
+            "config.toml already defines top-level `agents` data or root `agents.*` "
+            "assignments but has no explicit [agents] table to patch; refusing to append "
+            "a new block"
+        )
 
-    updated_text = build_config_features_text(existing_text)
+    updated_text = build_config_agents_text(build_config_features_text(existing_text))
     validate_config_toml(updated_text)
     backup_path: Path | None = None
 
@@ -711,7 +948,7 @@ def run_setup(spec: ProviderSpec) -> int:
     failed_asset = codex_config_path(spec)
 
     try:
-        config_result = ensure_codex_config_features(spec)
+        config_result = ensure_codex_config_settings(spec)
         config_result["kind"] = "config"
         installed_assets.append(config_result)
 
@@ -801,36 +1038,64 @@ def run_doctor(spec: ProviderSpec) -> int:
             config_text = config_path.read_text(encoding="utf-8")
         except OSError as exc:
             config_read_error = str(exc)
-    config_state = None
-    config_values: dict[str, object | None] = {key: None for key in CONFIG_FEATURE_KEYS}
+    feature_state = None
+    feature_values: dict[str, object | None] = {
+        key: None for key in CONFIG_FEATURE_KEYS
+    }
+    agent_state = None
+    agent_values: dict[str, object | None] = {
+        key: None for key in CONFIG_AGENT_SETTINGS
+    }
     config_parse_error: str | None = None
-    config_conflict = False
+    feature_conflict = False
+    agent_conflict = False
     has_features_block = False
+    has_agents_block = False
     if config_read_error is None:
         try:
-            config_conflict = has_conflicting_top_level_features_definition(config_text)
+            feature_conflict = has_conflicting_top_level_features_definition(config_text)
+            agent_conflict = has_conflicting_top_level_agents_definition(config_text)
         except RuntimeError as exc:
             config_parse_error = str(exc)
 
         try:
-            config_state = inspect_config_feature_lines(config_text)
-            has_features_block = bool(config_state["has_features_block"])
+            feature_state = inspect_config_feature_lines(config_text)
+            has_features_block = bool(feature_state["has_features_block"])
+            agent_state = inspect_config_agent_lines(config_text)
+            has_agents_block = bool(agent_state["has_agents_block"])
         except RuntimeError as exc:
             config_parse_error = str(exc)
 
         if config_parse_error is None:
-            parsed_state = inspect_config_features(config_text)
-            config_values = parsed_state["values"]
-            config_parse_error = parsed_state["parse_error"]
-            if config_state is None:
-                has_features_block = bool(parsed_state["has_features_block"])
+            parsed_features = inspect_config_features(config_text)
+            feature_values = parsed_features["values"]
+            config_parse_error = parsed_features["parse_error"]
+            if feature_state is None:
+                has_features_block = bool(parsed_features["has_features_block"])
 
-    config_complete = (
+        if config_parse_error is None:
+            parsed_agents = inspect_config_agents(config_text)
+            agent_values = parsed_agents["values"]
+            config_parse_error = parsed_agents["parse_error"]
+            if agent_state is None:
+                has_agents_block = bool(parsed_agents["has_agents_block"])
+
+    features_complete = (
         config_read_error is None
         and config_parse_error is None
-        and not config_conflict
+        and not feature_conflict
         and has_features_block
-        and all(config_values[key] is True for key in CONFIG_FEATURE_KEYS)
+        and all(feature_values[key] is True for key in CONFIG_FEATURE_KEYS)
+    )
+    agents_complete = (
+        config_read_error is None
+        and config_parse_error is None
+        and not agent_conflict
+        and has_agents_block
+        and all(
+            agent_values[key] == int(value)
+            for key, value in CONFIG_AGENT_SETTINGS.items()
+        )
     )
     legacy_assets = [
         *(spec.agents_root / filename for filename in LEGACY_MANAGED_AGENT_FILES),
@@ -841,7 +1106,8 @@ def run_doctor(spec: ProviderSpec) -> int:
     ]
     ready = (
         not missing_assets
-        and config_complete
+        and features_complete
+        and agents_complete
         and not found_legacy
         and manifest_parse_error is None
     )
@@ -863,20 +1129,26 @@ def run_doctor(spec: ProviderSpec) -> int:
             print(f"  - {asset}")
 
     print(f"- managed config path: {config_path}")
-    print(f"- required config feature flags present: {'yes' if config_complete else 'no'}")
+    print(f"- required config feature flags present: {'yes' if features_complete else 'no'}")
+    print(f"- required config agent settings present: {'yes' if agents_complete else 'no'}")
     if config_read_error is not None:
         print(f"- config TOML: unreadable ({config_read_error})")
     elif config_parse_error is not None:
         print(f"- config TOML: invalid ({config_parse_error})")
-    elif config_conflict:
+    elif feature_conflict:
         print(
             "- config feature flags: conflict (top-level features data or root "
             "features.* assignments without an explicit [features] table)"
         )
-    elif config_state is not None and has_features_block:
+    elif agent_conflict:
+        print(
+            "- config agent settings: conflict (top-level agents data or root "
+            "agents.* assignments without an explicit [agents] table)"
+        )
+    elif feature_state is not None and has_features_block:
         print("- config feature flags:")
         for key in CONFIG_FEATURE_KEYS:
-            value = config_values[key]
+            value = feature_values[key]
             if value is True:
                 status = "true"
             elif value is None:
@@ -888,6 +1160,26 @@ def run_doctor(spec: ProviderSpec) -> int:
             print(f"  - {key}: {status}")
     else:
         print("- config feature flags: missing [features] block")
+
+    if (
+        config_read_error is None
+        and config_parse_error is None
+        and not agent_conflict
+        and agent_state is not None
+        and has_agents_block
+    ):
+        print("- config agent settings:")
+        for key, expected in CONFIG_AGENT_SETTINGS.items():
+            value = agent_values[key]
+            if value == int(expected):
+                status = str(value)
+            elif value is None:
+                status = "missing"
+            else:
+                status = f"{value} (expected {expected})"
+            print(f"  - {key}: {status}")
+    elif config_read_error is None and config_parse_error is None and not agent_conflict:
+        print("- config agent settings: missing [agents] block")
 
     if found_legacy:
         print("- legacy managed assets still present:")
@@ -901,7 +1193,7 @@ def run_doctor(spec: ProviderSpec) -> int:
             print(f"  - {asset}")
         return 1
 
-    if not config_complete or manifest_parse_error is not None:
+    if not features_complete or not agents_complete or manifest_parse_error is not None:
         return 1
 
     return 0
