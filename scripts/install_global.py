@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import argparse
 import json
+from bisect import bisect_right
 import shutil
+import re
+import tomllib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -41,6 +44,35 @@ LEGACY_MANAGED_SKILL_DIRS = (
     "qa",
 )
 
+CONFIG_FEATURE_KEYS = (
+    "multi_agent",
+    "codex_hooks",
+    "default_mode_request_user_input",
+)
+
+FEATURES_HEADER_RE = re.compile(
+    r"^\s*\[\s*(?:features|\"features\"|'features')\s*\]\s*(?:#.*)?$"
+)
+FEATURES_ARRAY_HEADER_RE = re.compile(
+    r"^\s*\[\[\s*(?:features|\"features\"|'features')\s*\]\]\s*(?:#.*)?$"
+)
+FEATURES_TOP_LEVEL_ASSIGNMENT_RE = re.compile(
+    r"^\s*(?:features|\"features\"|'features')\s*="
+)
+FEATURES_ROOT_DOTTED_ASSIGNMENT_RE = re.compile(
+    r"^\s*(?:features|\"features\"|'features')\s*\."
+)
+CONFIG_FEATURE_KEY_RE = r"(?:multi_agent|codex_hooks|default_mode_request_user_input)"
+CONFIG_ASSIGNMENT_RE = re.compile(
+    r"^\s*(?P<key>(?:'[^']+'|\"[^\"]+\"|[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*))\s*=\s*(?P<value>.*)$"
+)
+MANAGED_CONFIG_FEATURE_RE = re.compile(
+    rf"^\s*(?:(?P<quoted>['\"](?P<quoted_key>{CONFIG_FEATURE_KEY_RE})['\"])|(?P<bare>{CONFIG_FEATURE_KEY_RE}))\s*=\s*(?P<value>.*)$"
+)
+CANONICAL_CONFIG_FEATURE_RE = re.compile(
+    rf"^\s*(?P<key>{CONFIG_FEATURE_KEY_RE})\s*=\s*true\s*(?:#.*)?$"
+)
+
 
 @dataclass(frozen=True)
 class ProviderSpec:
@@ -55,6 +87,10 @@ class ProviderSpec:
 
 def now_utc() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def codex_config_path(spec: ProviderSpec) -> Path:
+    return spec.install_root / "config.toml"
 
 
 def build_codex_spec(codex_home: Path) -> ProviderSpec:
@@ -212,13 +248,405 @@ def remove_legacy_managed_assets(spec: ProviderSpec) -> list[dict[str, str | Non
     return removed
 
 
+def render_config_features_block(newline: str) -> str:
+    return "".join(
+        [
+            "[features]",
+            newline,
+            *[f"{key} = true{newline}" for key in CONFIG_FEATURE_KEYS],
+        ]
+    )
+
+
+def build_line_offsets(lines: list[str]) -> list[int]:
+    offsets: list[int] = []
+    offset = 0
+    for line in lines:
+        offsets.append(offset)
+        offset += len(line)
+    return offsets
+
+
+def scan_multiline_string_end(
+    text: str, start_offset: int, quote_char: str
+) -> int | None:
+    delimiter = quote_char * 3
+    pos = start_offset + 3
+    escape_next = False
+
+    while pos < len(text):
+        char = text[pos]
+        if quote_char == '"' and escape_next:
+            escape_next = False
+            pos += 1
+            continue
+
+        if quote_char == '"' and char == "\\":
+            escape_next = True
+            pos += 1
+            continue
+
+        if char == quote_char and text.startswith(delimiter, pos):
+            return pos + 3
+
+        pos += 1
+
+    return None
+
+
+def scan_array_end(text: str, start_offset: int) -> int | None:
+    pos = start_offset + 1
+    depth = 1
+    mode: str | None = None
+    escape_next = False
+    comment = False
+
+    while pos < len(text):
+        char = text[pos]
+
+        if comment:
+            if char in "\r\n":
+                comment = False
+            pos += 1
+            continue
+
+        if mode is None:
+            if char == "#":
+                comment = True
+            elif char == "[":
+                depth += 1
+            elif char == "]":
+                depth -= 1
+                if depth == 0:
+                    return pos + 1
+            elif char == '"':
+                if text.startswith('"""', pos):
+                    mode = "basic_multiline"
+                    pos += 3
+                    escape_next = False
+                    continue
+                mode = "basic"
+            elif char == "'":
+                if text.startswith("'''", pos):
+                    mode = "literal_multiline"
+                    pos += 3
+                    continue
+                mode = "literal"
+            pos += 1
+            continue
+
+        if mode == "basic":
+            if escape_next:
+                escape_next = False
+            elif char == "\\":
+                escape_next = True
+            elif char == '"':
+                mode = None
+            pos += 1
+            continue
+
+        if mode == "literal":
+            if char == "'":
+                mode = None
+            pos += 1
+            continue
+
+        if mode == "basic_multiline":
+            if escape_next:
+                escape_next = False
+            elif char == "\\":
+                escape_next = True
+            elif char == '"' and text.startswith('"""', pos):
+                mode = None
+                pos += 3
+                continue
+            pos += 1
+            continue
+
+        if mode == "literal_multiline":
+            if char == "'" and text.startswith("'''", pos):
+                mode = None
+                pos += 3
+                continue
+            pos += 1
+            continue
+
+    return None
+
+
+def assignment_span_end(
+    lines: list[str], text: str, line_offsets: list[int], start_index: int
+) -> int:
+    match = CONFIG_ASSIGNMENT_RE.match(lines[start_index])
+    if not match:
+        return start_index + 1
+
+    value = match.group("value")
+    start_offset = line_offsets[start_index] + match.start("value")
+
+    if value.startswith('"""'):
+        end_offset = scan_multiline_string_end(text, start_offset, '"')
+    elif value.startswith("'''"):
+        end_offset = scan_multiline_string_end(text, start_offset, "'")
+    elif value.startswith("["):
+        end_offset = scan_array_end(text, start_offset)
+    else:
+        return start_index + 1
+
+    if end_offset is None:
+        raise RuntimeError(
+            "config.toml has an unterminated multiline array or triple-quoted string "
+            "inside the managed [features] block; refusing to patch it"
+        )
+
+    return bisect_right(line_offsets, end_offset - 1)
+
+
+def find_features_block_bounds_from(
+    lines: list[str], start_index: int = 0
+) -> tuple[int | None, int | None]:
+    header_index: int | None = None
+    for index in range(start_index, len(lines)):
+        line = lines[index]
+        if FEATURES_HEADER_RE.match(line):
+            header_index = index
+            break
+
+    if header_index is None:
+        return None, None
+
+    text = "".join(lines)
+    line_offsets = build_line_offsets(lines)
+    end_index = len(lines)
+    index = header_index + 1
+    while index < len(lines):
+        stripped = lines[index].lstrip()
+        if stripped.startswith("[") and not stripped.startswith("#"):
+            end_index = index
+            break
+        index = assignment_span_end(lines, text, line_offsets, index)
+
+    return header_index, end_index
+
+
+def find_features_block_bounds(lines: list[str]) -> tuple[int | None, int | None]:
+    return find_features_block_bounds_from(lines)
+
+
+def find_features_block_ranges(lines: list[str]) -> list[tuple[int, int]]:
+    ranges: list[tuple[int, int]] = []
+    search_index = 0
+
+    while True:
+        header_index, end_index = find_features_block_bounds_from(lines, search_index)
+        if header_index is None or end_index is None:
+            break
+        ranges.append((header_index, end_index))
+        search_index = end_index
+
+    return ranges
+
+
+def inspect_config_features(text: str) -> dict[str, object]:
+    values: dict[str, object | None] = {key: None for key in CONFIG_FEATURE_KEYS}
+
+    try:
+        parsed = tomllib.loads(text) if text else {}
+    except tomllib.TOMLDecodeError as exc:
+        return {
+            "parse_error": str(exc),
+            "has_features_block": False,
+            "values": values,
+        }
+
+    features = parsed.get("features")
+    if not isinstance(features, dict):
+        return {
+            "parse_error": None,
+            "has_features_block": False,
+            "values": values,
+        }
+
+    for key in CONFIG_FEATURE_KEYS:
+        values[key] = features.get(key)
+
+    return {
+        "parse_error": None,
+        "has_features_block": True,
+        "values": values,
+    }
+
+
+def inspect_config_feature_lines(text: str) -> dict[str, object]:
+    lines = text.splitlines(keepends=True)
+    block_ranges = find_features_block_ranges(lines)
+    canonical_counts: dict[str, int] = {key: 0 for key in CONFIG_FEATURE_KEYS}
+    managed_counts: dict[str, int] = {key: 0 for key in CONFIG_FEATURE_KEYS}
+
+    if not block_ranges:
+        return {
+            "has_features_block": False,
+            "feature_block_count": 0,
+            "canonical_counts": canonical_counts,
+            "managed_counts": managed_counts,
+        }
+
+    for header_index, end_index in block_ranges:
+        for line in lines[header_index + 1 : end_index]:
+            match = MANAGED_CONFIG_FEATURE_RE.match(line)
+            if not match:
+                continue
+            key = match.group("quoted_key") or match.group("bare")
+            if key is None:
+                continue
+            managed_counts[key] += 1
+            if CANONICAL_CONFIG_FEATURE_RE.match(line):
+                canonical_counts[key] += 1
+
+    return {
+        "has_features_block": True,
+        "feature_block_count": len(block_ranges),
+        "canonical_counts": canonical_counts,
+        "managed_counts": managed_counts,
+    }
+
+
+def build_config_features_text(existing_text: str) -> str:
+    newline = "\r\n" if "\r\n" in existing_text else "\n"
+    if not existing_text:
+        return render_config_features_block(newline)
+
+    lines = existing_text.splitlines(keepends=True)
+    text = "".join(lines)
+    line_offsets = build_line_offsets(lines)
+    config_state = inspect_config_feature_lines(existing_text)
+    canonical_counts = config_state["canonical_counts"]
+    managed_counts = config_state["managed_counts"]
+    already_ok = (
+        bool(config_state["has_features_block"])
+        and config_state["feature_block_count"] == 1
+        and all(
+            canonical_counts[key] == 1 and managed_counts[key] == 1
+            for key in CONFIG_FEATURE_KEYS
+        )
+    )
+    if already_ok:
+        return existing_text
+
+    features_block = render_config_features_block(newline)
+    block_ranges = find_features_block_ranges(lines)
+
+    if not block_ranges:
+        prefix = existing_text
+        if prefix and not prefix.endswith(("\n", "\r")):
+            prefix += newline
+        return prefix + features_block
+
+    preserved_lines: list[str] = []
+    for header_index, end_index in block_ranges:
+        index = header_index + 1
+        while index < end_index:
+            span_end = assignment_span_end(lines, text, line_offsets, index)
+            line = lines[index]
+            if MANAGED_CONFIG_FEATURE_RE.match(line):
+                index = span_end
+                continue
+            preserved_lines.extend(lines[index:span_end])
+            index = span_end
+
+    rebuilt_lines = [
+        *lines[:block_ranges[0][0]],
+        lines[block_ranges[0][0]],
+        *[f"{key} = true{newline}" for key in CONFIG_FEATURE_KEYS],
+        *preserved_lines,
+    ]
+    cursor = block_ranges[0][1]
+    for header_index, end_index in block_ranges[1:]:
+        rebuilt_lines.extend(lines[cursor:header_index])
+        cursor = end_index
+    rebuilt_lines.extend(lines[cursor:])
+    return "".join(rebuilt_lines)
+
+
+def has_conflicting_top_level_features_definition(existing_text: str) -> bool:
+    if not existing_text:
+        return False
+
+    lines = existing_text.splitlines(keepends=True)
+    if find_features_block_ranges(lines):
+        return False
+
+    for line in lines:
+        stripped = line.lstrip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if FEATURES_ARRAY_HEADER_RE.match(line):
+            return True
+        if FEATURES_TOP_LEVEL_ASSIGNMENT_RE.match(line):
+            return True
+        if FEATURES_ROOT_DOTTED_ASSIGNMENT_RE.match(line):
+            return True
+        if stripped.startswith("["):
+            break
+
+    return False
+
+
+def validate_config_toml(text: str) -> None:
+    try:
+        tomllib.loads(text)
+    except tomllib.TOMLDecodeError as exc:
+        raise RuntimeError(f"config.toml is invalid TOML after setup: {exc}") from exc
+
+
+def ensure_codex_config_features(spec: ProviderSpec) -> dict[str, str | None]:
+    config_path = codex_config_path(spec)
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    existing_text = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
+    if has_conflicting_top_level_features_definition(existing_text):
+        raise RuntimeError(
+            "config.toml already defines top-level `features` data or root `features.*` "
+            "assignments but has no explicit [features] table to patch; refusing to append "
+            "a new block"
+        )
+
+    updated_text = build_config_features_text(existing_text)
+    validate_config_toml(updated_text)
+    backup_path: Path | None = None
+
+    if updated_text == existing_text:
+        return {
+            "target": str(config_path),
+            "source": str(config_path),
+            "backup_path": None,
+        }
+
+    if config_path.exists():
+        backup_path = spec.backup_root / config_path.relative_to(spec.install_root)
+        backup_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(config_path, backup_path)
+
+    config_path.write_text(updated_text, encoding="utf-8")
+    return {
+        "target": str(config_path),
+        "source": str(config_path),
+        "backup_path": str(backup_path) if backup_path else None,
+    }
+
+
 def run_setup(spec: ProviderSpec) -> int:
     installed_assets: list[dict[str, str | None]] = []
     removed_legacy_assets: list[dict[str, str | None]] = []
-    spec.install_root.mkdir(parents=True, exist_ok=True)
+    failed_asset = codex_config_path(spec)
 
     try:
+        config_result = ensure_codex_config_features(spec)
+        config_result["kind"] = "config"
+        installed_assets.append(config_result)
+
         for asset_kind, src, dst in codex_asset_targets(spec):
+            failed_asset = dst
             if asset_kind == "agent":
                 result = render_agent_with_backup(src, dst, spec)
             else:
@@ -232,11 +660,11 @@ def run_setup(spec: ProviderSpec) -> int:
             status="failed",
             installed_assets=installed_assets,
             removed_legacy_assets=removed_legacy_assets,
-            failed_asset=str(dst),
+            failed_asset=str(failed_asset),
             error=str(exc),
         )
         print("everything-automate setup failed.", file=sys.stderr)
-        print(f"- failed asset: {dst}", file=sys.stderr)
+        print(f"- failed asset: {failed_asset}", file=sys.stderr)
         print(f"- error: {exc}", file=sys.stderr)
         if installed_assets:
             print("- installed so far:", file=sys.stderr)
@@ -284,6 +712,38 @@ def run_doctor(spec: ProviderSpec) -> int:
         manifest = json.loads(spec.manifest_path.read_text(encoding="utf-8"))
         latest_status = manifest.get("status", "unknown")
 
+    config_path = codex_config_path(spec)
+    config_text = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
+    config_state = None
+    config_values: dict[str, object | None] = {key: None for key in CONFIG_FEATURE_KEYS}
+    config_parse_error: str | None = None
+    config_conflict = False
+    has_features_block = False
+    try:
+        config_conflict = has_conflicting_top_level_features_definition(config_text)
+    except RuntimeError as exc:
+        config_parse_error = str(exc)
+
+    try:
+        config_state = inspect_config_feature_lines(config_text)
+        has_features_block = bool(config_state["has_features_block"])
+    except RuntimeError as exc:
+        config_parse_error = str(exc)
+
+    if config_parse_error is None:
+        parsed_state = inspect_config_features(config_text)
+        config_values = parsed_state["values"]
+        config_parse_error = parsed_state["parse_error"]
+        if config_state is None:
+            has_features_block = bool(parsed_state["has_features_block"])
+
+    config_complete = (
+        config_parse_error is None
+        and not config_conflict
+        and has_features_block
+        and all(config_values[key] is True for key in CONFIG_FEATURE_KEYS)
+    )
+
     print("everything-automate doctor")
     print(f"- provider: {spec.name}")
     print(f"- managed install root: {spec.install_root}")
@@ -296,6 +756,31 @@ def run_doctor(spec: ProviderSpec) -> int:
         print("- found:")
         for asset in found_assets:
             print(f"  - {asset}")
+
+    print(f"- managed config path: {config_path}")
+    print(f"- required config feature flags present: {'yes' if config_complete else 'no'}")
+    if config_parse_error is not None:
+        print(f"- config TOML: invalid ({config_parse_error})")
+    elif config_conflict:
+        print(
+            "- config feature flags: conflict (top-level features data or root "
+            "features.* assignments without an explicit [features] table)"
+        )
+    elif config_state is not None and has_features_block:
+        print("- config feature flags:")
+        for key in CONFIG_FEATURE_KEYS:
+            value = config_values[key]
+            if value is True:
+                status = "true"
+            elif value is None:
+                status = "missing"
+            elif isinstance(value, bool):
+                status = "false"
+            else:
+                status = f"wrong type ({type(value).__name__})"
+            print(f"  - {key}: {status}")
+    else:
+        print("- config feature flags: missing [features] block")
 
     legacy_assets = [
         *(spec.agents_root / filename for filename in LEGACY_MANAGED_AGENT_FILES),
@@ -312,6 +797,9 @@ def run_doctor(spec: ProviderSpec) -> int:
         print("- missing:")
         for asset in missing_assets:
             print(f"  - {asset}")
+        return 1
+
+    if not config_complete:
         return 1
 
     return 0

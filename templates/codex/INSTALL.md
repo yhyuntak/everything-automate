@@ -95,6 +95,11 @@ The current global setup v0 is:
 
 - `setup`
   - materialize `~/.codex/AGENTS.md`
+  - ensure required EA feature flags in `~/.codex/config.toml`:
+    - only these `[features]` keys are managed; the rest of `config.toml` stays user-owned
+    - `multi_agent = true`
+    - `codex_hooks = true`
+    - `default_mode_request_user_input = true`
   - materialize `~/.codex/hooks.json`
   - materialize `~/.codex/hooks/`
   - materialize `~/.codex/agents/*.toml`
@@ -104,7 +109,6 @@ The current global setup v0 is:
 - `doctor`
   - report managed install root
   - report found and missing managed assets
+  - report required EA config feature status and exit non-zero when it is incomplete or invalid
   - report latest manifest path and status
-
-`~/.codex/config.toml` is intentionally excluded from v0.
 Other workflow surfaces and provider adapters should be added only after their contracts are explicitly agreed.

@@ -77,6 +77,8 @@ Check install state with:
 python3 scripts/install_global.py doctor --provider codex
 ```
 
+Doctor exits non-zero when the required config flags are incomplete or invalid.
+
 Current global install writes:
 
 - `~/.codex/AGENTS.md`
@@ -98,6 +100,7 @@ It also:
 
 - writes an install manifest under `~/.codex/everything-automate/`
 - creates backups under `~/.codex/backups/<timestamp>/`
+- ensures the three required EA feature flags in `~/.codex/config.toml` and leaves the rest of that file user-owned
 
 ## Project Layout
 
