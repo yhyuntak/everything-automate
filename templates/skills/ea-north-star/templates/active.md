@@ -51,5 +51,8 @@ read_test_default_reasoning: medium
 ## Read-Test Notes
 [Summaries of read-test results and divergence, if any.]
 
+## Next Stage Hint
+[What stage should follow next, and why.]
+
 ## Anchor Message
 North Star mode is active. Keep the discussion focused on turning the user's fuzzy intent into one concrete shared target. Classify new ideas as Goal Material, Spec Seed, or Parking Lot before following them.

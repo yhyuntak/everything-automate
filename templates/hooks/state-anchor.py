@@ -81,9 +81,42 @@ def build_north_star_anchor(markdown: str, stage: str) -> str:
     return "\n".join(parts).strip()
 
 
+def build_milestone_anchor(markdown: str, stage: str) -> str:
+    anchor_message = section(markdown, "Anchor Message")
+    parent_goal = section(markdown, "Parent Goal")
+    milestone_list = section(markdown, "Milestone List")
+    current_milestone = section(markdown, "Current Milestone Recommendation")
+    ordering_logic = section(markdown, "Ordering Logic")
+
+    parts = [
+        "Milestone mode is active.",
+        f"Stage: {stage}.",
+    ]
+    if anchor_message:
+        parts.extend(["", "Anchor:", anchor_message])
+    if parent_goal:
+        parts.extend(["", "Parent Goal:", parent_goal])
+    if current_milestone:
+        parts.extend(["", "Current Milestone Recommendation:", current_milestone])
+    if milestone_list:
+        parts.extend(["", "Milestone List:", milestone_list])
+    if ordering_logic:
+        parts.extend(["", "Ordering Logic:", ordering_logic])
+    parts.extend(
+        [
+            "",
+            "Stay inside the active milestone boundary.",
+            "Classify new ideas as Milestone Material, Ordering Question, Dependency Note, or Parking Lot before following them.",
+            "Keep milestones output-first and make the current milestone recommendation explicit.",
+        ]
+    )
+    return "\n".join(parts).strip()
+
+
 def build_blueprint_anchor(markdown: str, stage: str) -> str:
     anchor_message = section(markdown, "Anchor Message")
     source_goal = section(markdown, "Source Goal")
+    source_milestone = section(markdown, "Source Milestone")
     target_and_scope = section(markdown, "Target And Scope")
     current_state = section(markdown, "Current State")
     design_pressure = section(markdown, "Design Pressure")
@@ -99,6 +132,8 @@ def build_blueprint_anchor(markdown: str, stage: str) -> str:
         parts.extend(["", "Anchor:", anchor_message])
     if source_goal:
         parts.extend(["", "Source Goal:", source_goal])
+    if source_milestone:
+        parts.extend(["", "Source Milestone:", source_milestone])
     if target_and_scope:
         parts.extend(["", "Target And Scope:", target_and_scope])
     if current_state:
@@ -127,6 +162,8 @@ def build_anchor(markdown: str) -> str:
     stage = frontmatter_value(markdown, "stage") or "unknown"
     if mode == "north-star":
         return build_north_star_anchor(markdown, stage)
+    if mode == "milestone":
+        return build_milestone_anchor(markdown, stage)
     if mode == "blueprint":
         return build_blueprint_anchor(markdown, stage)
     return ""

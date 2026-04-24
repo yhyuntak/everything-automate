@@ -1,6 +1,6 @@
 ---
 name: ea-north-star
-description: Lock a fuzzy user goal into one clear North Star before brainstorming, blueprinting, planning, backlog work, or execution.
+description: Lock a fuzzy user goal into one clear North Star before milestone splitting, blueprinting, planning, backlog work, or execution.
 argument-hint: "<fuzzy goal, product idea, feature idea, issue, or unclear target>"
 ---
 
@@ -8,7 +8,7 @@ argument-hint: "<fuzzy goal, product idea, feature idea, issue, or unclear targe
 
 Use this when the user wants their real target made clear before later work starts.
 
-`ea-north-star` is stricter than brainstorming. Its job is to stop drift, extract the user's concrete goal, and create a file-backed North Star that other agents can read the same way.
+`ea-north-star` is stricter than brainstorming. Its job is to stop drift, extract the user's concrete goal, and create a file-backed North Star that later stages can read the same way.
 
 ## Purpose
 
@@ -35,51 +35,37 @@ If the user did not explicitly ask for North Star mode, ask before starting when
 
 Do not use this skill when:
 
-- the user only wants casual conversation
-- the task is already clear enough for implementation
+- the task is already clear enough for milestone splitting, blueprinting, or implementation
 - the user wants execution planning from an already locked target
 - the user wants open-ended idea expansion
 - the user wants a code review or QA review
+- the user only wants casual conversation
 
 ## Core Rule
 
 North Star is target clarification only.
 
-North Star starts by bootstrapping a dedicated git worktree for the target.
+It owns:
+
+- one clear final goal
+- success and failure picture
+- scope and non-goals
+- decision filter
+- next-stage hint
 
 It does not own:
 
+- milestone splitting
 - blueprinting
 - execution planning
-- backlog shaping
 - implementation
 - QA
 
 Design ideas may appear during North Star. Do not discard them, and do not let them redefine the goal. Put them in `Spec Seeds`.
 
-## Worktree Bootstrap
-
-North Star is the only workflow skill that starts by preparing a dedicated worktree.
-
-Before any real North Star questioning:
-
-- derive a short slug from the rough goal
-- create or reuse a dedicated long-lived git worktree for that slug
-- create `.everything-automate/state/active.md` inside that worktree only
-- do not create `active.md` in the shared checkout
-
-After the worktree and active file are ready:
-
-- tell the user the worktree path
-- tell the user to move into that worktree
-- tell the user to start a new Codex session there
-- stop the current North Star session after setup
-
-The current session does not continue the real North Star conversation after bootstrap. The user resumes North Star from inside the new worktree session.
-
 ## State File
 
-When North Star mode starts, first prepare the dedicated worktree, then create or update:
+When North Star mode starts, create or update:
 
 - `.everything-automate/state/active.md`
 
@@ -102,9 +88,9 @@ Do not create mode-specific active files such as:
 
 Use the `mode` front matter to say which workflow owns the current active state.
 
-When the North Star is locked, treat the locked file as the North Star output and archive it. Do not leave a locked North Star at the active path.
+If `.everything-automate/state/active.md` already exists and belongs to another workflow, stop and ask before overwriting it.
 
-When North Star mode closes, archive the active file to:
+When the North Star is locked, archive the accepted output to:
 
 - `.everything-automate/state/north-star/archive/YYYYMMDD-HHMMSS-[slug].md`
 
@@ -162,21 +148,20 @@ Follow this pipeline:
 
 ```text
 raw intent
-  -> worktree bootstrap
+  -> create active.md early
   -> user mental picture
   -> one-sentence North Star draft
   -> scope and non-goals
   -> concrete success/failure picture
+  -> decision filter
   -> read-test
   -> refine or lock
-  -> archive locked output and remove active.md
+  -> archive accepted output and remove active.md
 ```
 
 ## Step 1: Capture Raw Intent
 
-Create or reuse the dedicated worktree first.
-
-Then create `active.md` in that worktree early. Do not wait until the goal is polished.
+Create `active.md` early. Do not wait until the goal is polished.
 
 Capture:
 
@@ -186,8 +171,6 @@ Capture:
 - what is still unclear
 
 Keep the file useful, not perfect.
-
-Do not continue the real North Star conversation in the shared checkout after this bootstrap step. Stop after you tell the user where to continue.
 
 ## Step 2: Extract The Mental Picture
 
@@ -290,7 +273,7 @@ Pass when:
 Fail when:
 
 - any agent reads a different main target
-- agents disagree on whether this is goal clarification, planning, or implementation
+- agents disagree on whether this is goal clarification, milestone splitting, planning, or implementation
 - agents disagree on the main artifact or result
 - more than one agent says the target is too ambiguous to act on
 
@@ -310,10 +293,9 @@ If read-test passes:
 
 - mark the active file as locked
 - summarize the locked North Star
-- archive the locked file as the North Star output
+- archive the locked file as the accepted North Star output
 - remove `active.md` from the active path so hooks return to no-op
 - tell the user where the locked output was archived
-- only keep `active.md` if the user explicitly says to keep North Star mode active for more refinement
 
 Do not leave a locked `active.md` in place by default. A locked North Star at the active path keeps the hook active and can incorrectly constrain normal conversation or the next workflow.
 
@@ -321,12 +303,11 @@ Do not leave a locked `active.md` in place by default. A locked North Star at th
 
 When reporting to the user, keep it short:
 
-- worktree path, if bootstrap just happened
 - current North Star
 - what became clearer
 - what was parked
 - what still blocks lock, if anything
-- next step
+- next step hint
 
 ## Completion
 
@@ -336,8 +317,8 @@ North Star is complete when:
 - scope and non-goals are clear
 - a Decision Filter exists
 - read-test passes or the user explicitly accepts the remaining risk
-- the locked North Star has been archived
+- the accepted North Star output has been archived
 - `.everything-automate/state/active.md` has been removed
 - Spec Seeds are separate from the goal
 - Parking Lot items are separate from the goal
-- the next step is clear
+- the next stage hint is clear

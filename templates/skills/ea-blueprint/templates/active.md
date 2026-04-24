@@ -5,7 +5,9 @@ stage: initial-blueprint
 version: 0
 updated_at: YYYY-MM-DDTHH:MM:SS+09:00
 owner: user
-target_kind: [code-change | milestone-roadmap | harness-workflow | docs-knowledge | general]
+target_kind: [code-change | harness-workflow | docs-knowledge | general]
+source_milestone: [path to locked milestone archive]
+source_milestone_name: [short milestone name]
 source_north_star: [path to locked North Star archive]
 source_north_star_title: [short title]
 source_north_star_mode: north-star
@@ -20,6 +22,9 @@ design_review_agents: 1
 
 ## Source Goal
 [One-sentence goal from the locked North Star. Keep it short and separate from the full North Star text.]
+
+## Source Milestone
+[The chosen milestone this blueprint is designing.]
 
 ## Target And Scope
 [Target kind, design target, in-scope items, and out-of-scope items.]
