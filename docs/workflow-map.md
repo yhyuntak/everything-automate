@@ -1,6 +1,6 @@
 ---
 title: Everything Automate Workflow Map
-description: Visual operating map for EA skills, agents, and the current read-only M2.5 graph-first Workbench.
+description: Visual operating map for EA skills, agents, and the current read-only Workbench roadmap.
 doc_type: guide
 scope:
   - workflow map
@@ -64,7 +64,7 @@ flowchart TD
   EX["ea-execute"]
   QA["ea-qa"]
   DOCS["ea-docs"]
-  MAP["M2.5 Workbench"]
+  MAP["Workbench Map"]
 
   Intent -->|"fuzzy goal"| NS
   Intent -->|"large clear goal"| MS
@@ -109,7 +109,34 @@ Final review
   -> ea-harness-reviewer
 ```
 
-## M2.5 Workbench
+## Workbench Roadmap
+
+The current Workbench roadmap adds visual readiness steps between the first read-only map and safe editing:
+
+```text
+[M1 Source And Graph Contract]
+   |
+   v
+[M2 Read-Only Visual Map V1]
+   |
+   v
+[M2.5A Graph Engine Reset]
+   |
+   v
+[M2.5B Visual Parity And Workbench Shell UX]
+   |
+   v
+[M2.6 Real Codex Source Readiness]
+   |
+   v
+[M3 Timestamped Work Package Safety Core]
+```
+
+The full current roadmap lives in:
+
+- `docs/workbench-roadmap.md`
+
+## Current Read-Only Workbench
 
 Run:
 
@@ -131,8 +158,8 @@ It shows:
 - a graph-dominant canvas
 - a right inspector
 - graph controls and a minimap
-- skill nodes
-- agent nodes
+- circular skill nodes
+- circular agent nodes
 - detected edges only
 
 The Workbench does not show the old editing studio behavior.

@@ -38,9 +38,11 @@ Those notes can mention older paths, older skill names, or pre-Codex-only design
 ## Current Reference Specs
 
 - `docs/workflow-map.md`
-  Visual workflow map and read-only M2.5 graph-first Workbench guide for skills, agents, and flexible entry routes.
+  Visual workflow map and read-only Workbench guide for skills, agents, and flexible entry routes.
+- `docs/workbench-roadmap.md`
+  Current amended Workbench milestone map, including M2.5A, M2.5B, and M2.6 before M3.
 - `docs/workbench-implementation-plan.md`
-  Current M2.5 read-only Workbench plan for `src/workbench/`.
+  Current read-only Workbench plan for `src/workbench/`.
 - `docs/workbench-source-contract.md`
   M1 source and graph contract for the Codex-first Workbench shape.
 - `docs/specs/everything-automate-operating-principles.md`

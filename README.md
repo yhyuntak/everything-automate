@@ -260,9 +260,11 @@ The install direction is:
 - [docs/specs/everything-automate-implementation-milestones.md](docs/specs/everything-automate-implementation-milestones.md)
   current milestone map
 - [docs/workflow-map.md](docs/workflow-map.md)
-  visual workflow map and M2.5 read-only Workbench guide
+  visual workflow map and read-only Workbench guide
+- [docs/workbench-roadmap.md](docs/workbench-roadmap.md)
+  current amended Workbench milestone map
 - [docs/workbench-implementation-plan.md](docs/workbench-implementation-plan.md)
-  current M2.5 read-only Workbench plan for `src/workbench/`
+  current read-only Workbench plan for `src/workbench/`
 - [docs/specs/everything-automate-codex-execute-hardening.md](docs/specs/everything-automate-codex-execute-hardening.md)
   current `M5` working document
 - [templates/INSTALL.md](templates/INSTALL.md)
