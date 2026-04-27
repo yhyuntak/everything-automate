@@ -20,31 +20,41 @@
         </div>
         <nav class="top-actions" aria-label="Graph actions">
           <button class="tool-button" id="sourcesToggle" type="button" title="Sources">
-            <span class="tool-icon">S</span>
+            <span class="tool-icon icon-source" aria-hidden="true"></span>
             <span>Sources</span>
           </button>
-          <button class="tool-button" id="fitButton" type="button" title="Fit graph">
-            <span class="tool-icon">F</span>
-            <span>Fit</span>
-          </button>
           <button class="tool-button" id="layoutButton" type="button" title="Reset layout">
-            <span class="tool-icon">L</span>
+            <span class="tool-icon icon-layout" aria-hidden="true"></span>
             <span>Layout</span>
           </button>
+          <button class="tool-button" id="fitButton" type="button" title="Fit graph">
+            <span class="tool-icon icon-fit" aria-hidden="true"></span>
+            <span>Fit</span>
+          </button>
           <button class="icon-only" id="helpButton" type="button" title="Help" aria-label="Help">?</button>
-          <button class="icon-only" id="menuButton" type="button" title="Menu" aria-label="Menu">=</button>
+          <button class="icon-only menu-lines" id="menuButton" type="button" title="Menu" aria-label="Menu"></button>
         </nav>
       </header>
 
       <div class="workspace">
         <nav class="rail" aria-label="Workbench sections">
-          <button class="rail-button is-active" type="button" title="Graph" aria-label="Graph">G</button>
-          <button class="rail-button" type="button" title="List" aria-label="List">L</button>
-          <button class="rail-button" type="button" title="Search" aria-label="Search">Q</button>
-          <button class="rail-button" type="button" title="Filters" aria-label="Filters">F</button>
+          <button class="rail-button is-active" type="button" title="Graph Map" aria-label="Graph Map">
+            <span class="rail-graph-icon" aria-hidden="true"></span>
+          </button>
+          <button class="rail-button is-muted" type="button" title="List view unavailable" aria-label="List view unavailable" disabled>
+            <span class="rail-list-icon" aria-hidden="true"></span>
+          </button>
+          <button class="rail-button is-muted" type="button" title="Search unavailable" aria-label="Search unavailable" disabled>
+            <span class="rail-search-icon" aria-hidden="true"></span>
+          </button>
+          <button class="rail-button is-muted" type="button" title="Filter presets unavailable" aria-label="Filter presets unavailable" disabled>
+            <span class="rail-slider-icon" aria-hidden="true"></span>
+          </button>
           <div class="rail-spacer"></div>
-          <button class="rail-button" type="button" title="Info" aria-label="Info">i</button>
-          <button class="rail-button" type="button" title="Settings" aria-label="Settings">*</button>
+          <button class="rail-button is-muted" type="button" title="Info unavailable" aria-label="Info unavailable" disabled>i</button>
+          <button class="rail-button is-muted" type="button" title="Settings unavailable" aria-label="Settings unavailable" disabled>
+            <span class="rail-gear-icon" aria-hidden="true"></span>
+          </button>
         </nav>
 
         <aside class="sources-panel" id="sourcesPanel" aria-label="Sources and filters">
@@ -65,6 +75,7 @@
               <strong id="sourceName">custom</strong>
               <p id="sourceSummary">Load a Codex home-like path</p>
             </div>
+            <button class="source-card-action" id="reloadSourceButton" type="button" title="Reload source" aria-label="Reload source"></button>
           </section>
 
           <label class="path-field" for="customPath">
@@ -136,6 +147,7 @@
               <p>Load a global, local, or custom Codex source to inspect the map.</p>
             </div>
           </section>
+          <div class="node-overlay-layer" id="nodeOverlayLayer" aria-hidden="true"></div>
 
           <div class="minimap" id="minimap" aria-hidden="true"></div>
 

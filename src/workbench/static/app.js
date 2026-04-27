@@ -9,6 +9,8 @@ const state = {
   selectedId: null,
   hoveredId: null,
   hubId: null,
+  graphMode: "small",
+  importantLabelIds: new Set(),
   filters: {
     skill: true,
     agent: true,
@@ -42,6 +44,7 @@ function bindElements() {
   els.inspectorPanel = $("#inspectorPanel");
   els.drawerBackdrop = $("#drawerBackdrop");
   els.graphCanvas = $("#graphCanvas");
+  els.nodeOverlayLayer = $("#nodeOverlayLayer");
   els.emptyState = $("#emptyState");
   els.minimap = $("#minimap");
   els.customPath = $("#customPath");
@@ -81,11 +84,12 @@ function bindEvents() {
   });
 
   $("#loadButton").addEventListener("click", loadGraph);
+  $("#reloadSourceButton").addEventListener("click", loadGraph);
   $("#clearButton").addEventListener("click", clearGraph);
   $("#clearFiltersButton").addEventListener("click", () => {
     state.filters.skill = false;
     state.filters.agent = false;
-    syncFilterInputs();
+    updateFilterLists();
     renderGraph();
   });
   $("#sourcesToggle").addEventListener("click", () => openDrawer("sources"));
@@ -104,6 +108,11 @@ function bindEvents() {
   $("#reloadButton").addEventListener("click", loadGraph);
   $("#resetButton").addEventListener("click", resetLayout);
   $("#clearSelectionButton").addEventListener("click", clearSelection);
+  els.inspectorPanel.addEventListener("click", (event) => {
+    const edgeButton = event.target.closest("[data-node-id]");
+    if (!edgeButton) return;
+    selectNode(edgeButton.dataset.nodeId);
+  });
 
   all("[data-close-popover]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -114,10 +123,12 @@ function bindEvents() {
 
   els.skillFilter.addEventListener("change", () => {
     state.filters.skill = els.skillFilter.checked;
+    updateFilterLists();
     renderGraph();
   });
   els.agentFilter.addEventListener("change", () => {
     state.filters.agent = els.agentFilter.checked;
+    updateFilterLists();
     renderGraph();
   });
 
@@ -201,6 +212,8 @@ function clearGraph(clearStatus = true) {
   state.hoveredId = null;
   destroyGraphs();
   els.emptyState.hidden = false;
+  els.emptyState.querySelector("h2").textContent = "No graph loaded";
+  els.emptyState.querySelector("p").textContent = "Load a global, local, or custom Codex source to inspect the map.";
   updateFilterLists();
   updateInspector();
   updatePreview();
@@ -245,8 +258,8 @@ function updateFilterLists() {
   const nodes = state.graph ? state.graph.nodes : [];
   const skills = nodes.filter((node) => node.surface_type === "skill");
   const agents = nodes.filter((node) => node.surface_type === "agent");
-  els.skillCount.textContent = `${skills.length} selected`;
-  els.agentCount.textContent = `${agents.length} selected`;
+  els.skillCount.textContent = `${state.filters.skill ? skills.length : 0} selected`;
+  els.agentCount.textContent = `${state.filters.agent ? agents.length : 0} selected`;
   els.skillList.innerHTML = skills.map(renderCompactNode).join("");
   els.agentList.innerHTML = agents.map(renderCompactNode).join("");
   syncFilterInputs();
@@ -268,6 +281,10 @@ function renderGraph() {
   }
   const nodes = visibleNodes();
   const edges = visibleEdges();
+  if (state.selectedId && !nodes.some((node) => node.selection_id === state.selectedId)) {
+    state.selectedId = null;
+    updateInspector();
+  }
   if (!nodes.length) {
     destroyGraphs();
     els.emptyState.hidden = false;
@@ -278,7 +295,10 @@ function renderGraph() {
   }
 
   els.emptyState.hidden = true;
-  const positioned = applyClientLayout(nodes, edges);
+  const viewPolicy = graphViewPolicy(nodes, edges);
+  state.graphMode = viewPolicy.mode;
+  state.importantLabelIds = viewPolicy.importantLabelIds;
+  const positioned = applyClientLayout(nodes, edges, viewPolicy);
   const hub = positioned.find((node) => node.isHub);
   state.hubId = hub ? hub.selection_id : null;
   const elements = [
@@ -286,13 +306,12 @@ function renderGraph() {
       group: "nodes",
       data: {
         id: node.selection_id,
-        label: node.name,
         kind: node.surface_type,
         size: node.renderSize,
         degree: node.degree,
       },
       position: { x: node.cx, y: node.cy },
-      classes: node.surface_type,
+      classes: `${node.surface_type} ${viewPolicy.mode}`,
     })),
     ...edges.map((edge, index) => ({
       group: "edges",
@@ -302,6 +321,7 @@ function renderGraph() {
         target: edge.to_selection_id,
         match: edge.match_text,
       },
+      classes: viewPolicy.mode,
     })),
   ];
 
@@ -309,7 +329,6 @@ function renderGraph() {
   state.cy = cytoscape({
     container: els.graphCanvas,
     elements,
-    wheelSensitivity: 0.18,
     minZoom: 0.22,
     maxZoom: 2.4,
     style: graphStyle(),
@@ -336,7 +355,9 @@ function renderGraph() {
     updateFocusClasses();
   });
   state.cy.on("zoom pan", updateZoomReadout);
+  state.cy.on("render zoom pan", updateNodeOverlays);
 
+  renderNodeOverlays(positioned);
   makeMiniMap(elements);
   fitGraph();
   updateFocusClasses();
@@ -354,17 +375,6 @@ function graphStyle() {
         "background-color": "#e8f8ef",
         "border-width": 2,
         "border-color": "#25b96f",
-        label: "data(label)",
-        color: "#111827",
-        "font-size": 14,
-        "font-weight": 700,
-        "text-valign": "bottom",
-        "text-halign": "center",
-        "text-margin-y": 8,
-        "text-outline-width": 4,
-        "text-outline-color": "#fbfcfe",
-        "text-wrap": "wrap",
-        "text-max-width": 110,
         "overlay-padding": 4,
       },
     },
@@ -383,8 +393,6 @@ function graphStyle() {
         "border-width": 6,
         "border-color": "#25b96f",
         "background-color": "#34c77a",
-        color: "#111827",
-        "font-size": 17,
       },
     },
     {
@@ -403,22 +411,33 @@ function graphStyle() {
     {
       selector: "edge",
       style: {
-        width: 1.6,
+        width: 1.4,
         "curve-style": "bezier",
         "line-color": "#8b96a8",
         "target-arrow-color": "#8b96a8",
         "target-arrow-shape": "triangle",
-        "arrow-scale": 0.8,
-        opacity: 0.74,
+        "arrow-scale": 0.7,
+        opacity: 0.48,
+      },
+    },
+    {
+      selector: "edge.dense",
+      style: {
+        width: 0.9,
+        "line-color": "#9aa6b6",
+        "target-arrow-color": "#9aa6b6",
+        "arrow-scale": 0.48,
+        opacity: 0.16,
       },
     },
     {
       selector: "edge.active",
       style: {
-        width: 2.4,
+        width: 2.2,
         "line-color": "#536173",
         "target-arrow-color": "#536173",
-        opacity: 1,
+        "arrow-scale": 0.75,
+        opacity: 0.95,
       },
     },
     {
@@ -430,7 +449,27 @@ function graphStyle() {
   ];
 }
 
-function applyClientLayout(nodes, edges) {
+function graphViewPolicy(nodes, edges) {
+  const dense = nodes.length > 12 || edges.length > 35;
+  const importantCount = dense ? Math.min(8, nodes.length) : nodes.length;
+  const importantLabelIds = new Set(
+    [...nodes]
+      .sort((a, b) => {
+        if (b.degree !== a.degree) return b.degree - a.degree;
+        return a.selection_id.localeCompare(b.selection_id);
+      })
+      .slice(0, importantCount)
+      .map((node) => node.selection_id),
+  );
+  return {
+    dense,
+    mode: dense ? "dense" : "small",
+    importantLabelIds,
+    minGap: dense ? 176 : 150,
+  };
+}
+
+function applyClientLayout(nodes, edges, viewPolicy) {
   const incident = new Map(nodes.map((node) => [node.selection_id, new Set()]));
   edges.forEach((edge) => {
     incident.get(edge.from_selection_id)?.add(edge.to_selection_id);
@@ -444,10 +483,13 @@ function applyClientLayout(nodes, edges) {
     }
     return a.selection_id.localeCompare(b.selection_id);
   });
+  if (viewPolicy.dense) {
+    return applyDenseRingLayout(sorted, viewPolicy);
+  }
   const hub = sorted[0];
   const hubNeighbors = new Set(incident.get(hub.selection_id) || []);
-  const nearSlots = [-150, -35, 80, 165, -95, 25, 120, -220].map(toRadians);
-  const farSlots = [-120, -15, 65, 145, 210, 285, 335].map(toRadians);
+  const nearSlots = [-172, -110, -38, 22, 78, 134, 188, 238, 302].map(toRadians);
+  const farSlots = [-135, -72, -8, 54, 118, 176, 230, 286, 338].map(toRadians);
   const result = [];
   let nearIndex = 0;
   let farIndex = 0;
@@ -461,7 +503,7 @@ function applyClientLayout(nodes, edges) {
       : ring === 1
         ? nearSlots[nearIndex++ % nearSlots.length]
         : farSlots[farIndex++ % farSlots.length];
-    const size = Math.min(92, 48 + node.degree * 9 + (isHub ? 18 : 0));
+    const size = nodeRenderSize(node, viewPolicy, isHub);
     result.push({
       ...node,
       isHub,
@@ -471,6 +513,59 @@ function applyClientLayout(nodes, edges) {
     });
   });
   return result;
+}
+
+function applyDenseRingLayout(sorted, viewPolicy) {
+  const result = [];
+  const hub = sorted[0];
+  sorted.forEach((node, index) => {
+    const isHub = index === 0;
+    if (isHub) {
+      result.push({
+        ...node,
+        isHub,
+        renderSize: nodeRenderSize(node, viewPolicy, true),
+        cx: 0,
+        cy: 0,
+      });
+      return;
+    }
+    const ringPlacement = denseRingPlacement(index - 1, viewPolicy.minGap);
+    result.push({
+      ...node,
+      isHub,
+      renderSize: nodeRenderSize(node, viewPolicy, false),
+      cx: Math.cos(ringPlacement.angle) * ringPlacement.radius,
+      cy: Math.sin(ringPlacement.angle) * ringPlacement.radius,
+    });
+  });
+  return result;
+}
+
+function denseRingPlacement(index, minGap) {
+  let remaining = index;
+  let ring = 1;
+  let radius = 330;
+  while (true) {
+    const capacity = Math.max(8, Math.floor(2 * Math.PI * radius / minGap));
+    if (remaining < capacity) {
+      const offset = ring % 2 === 0 ? Math.PI / capacity : 0;
+      return {
+        radius,
+        angle: -Math.PI / 2 + offset + remaining / capacity * 2 * Math.PI,
+      };
+    }
+    remaining -= capacity;
+    ring += 1;
+    radius += 230;
+  }
+}
+
+function nodeRenderSize(node, viewPolicy, isHub) {
+  if (viewPolicy.dense) {
+    return Math.min(76, 42 + Math.sqrt(Math.max(node.degree, 1)) * 8 + (isHub ? 8 : 0));
+  }
+  return Math.min(94, 48 + node.degree * 8 + (isHub ? 18 : 0));
 }
 
 function toRadians(degrees) {
@@ -525,6 +620,9 @@ function destroyGraphs() {
     state.mini.destroy();
     state.mini = null;
   }
+  if (els.nodeOverlayLayer) {
+    els.nodeOverlayLayer.innerHTML = "";
+  }
 }
 
 function fitGraph() {
@@ -537,7 +635,7 @@ function fitGraph() {
 
 function centerFocusNode() {
   if (!state.cy) return;
-  const focusId = state.selectedId || state.hubId;
+  const focusId = state.selectedId;
   if (!focusId) return;
   const focus = state.cy.getElementById(focusId);
   if (!focus || focus.empty()) return;
@@ -593,11 +691,15 @@ function updateFocusClasses() {
   if (!state.cy) return;
   const focusId = state.hoveredId || state.selectedId;
   state.cy.elements().removeClass("active dim");
-  if (!focusId) return;
+  if (!focusId) {
+    updateNodeOverlays();
+    return;
+  }
   const focus = state.cy.getElementById(focusId);
   const neighborhood = focus.closedNeighborhood();
   state.cy.elements().not(neighborhood).addClass("dim");
   neighborhood.addClass("active");
+  updateNodeOverlays();
 }
 
 function updateInspector() {
@@ -647,12 +749,118 @@ function clearSelection() {
   updateInspector();
 }
 
+function selectNode(nodeId) {
+  if (!state.cy || !nodeId) return;
+  const node = state.cy.getElementById(nodeId);
+  if (!node || node.empty()) return;
+  state.cy.nodes().unselect();
+  node.select();
+  state.selectedId = nodeId;
+  state.cy.animate({
+    center: { eles: node },
+    duration: 220,
+  });
+  updateFocusClasses();
+  updateInspector();
+}
+
 function updatePreview() {
   const nodes = visibleNodes();
   const edges = visibleEdges();
   els.previewSource.textContent = state.graph ? sourceLabel() : "None";
   els.previewNodes.textContent = String(nodes.length);
   els.previewEdges.textContent = String(edges.length);
+}
+
+function renderNodeOverlays(nodes) {
+  els.nodeOverlayLayer.innerHTML = nodes.map((node) => `
+    <div class="node-overlay is-${escapeAttr(node.surface_type)}" data-node-id="${escapeAttr(node.selection_id)}">
+      <div class="node-mark"></div>
+      <div class="node-label">${escapeHtml(node.name)}</div>
+    </div>
+  `).join("");
+  updateNodeOverlays();
+}
+
+function updateNodeOverlays() {
+  if (!state.cy || !els.nodeOverlayLayer) return;
+  const focusId = state.hoveredId || state.selectedId;
+  const visibleLabelIds = focusId ? focusNeighborhoodIds(focusId) : state.importantLabelIds;
+  const overlayItems = all(".node-overlay").map((overlay) => {
+    const id = overlay.dataset.nodeId;
+    const node = state.cy.getElementById(id);
+    if (!node || node.empty()) {
+      overlay.hidden = true;
+      return null;
+    }
+    const position = node.renderedPosition();
+    const size = Math.max(42, node.renderedWidth());
+    return { overlay, node, id, position, size };
+  }).filter(Boolean);
+  const readableLabelIds = readableDenseLabelIds(overlayItems, visibleLabelIds, focusId);
+
+  overlayItems.forEach((item) => {
+    const { overlay, node, id, position, size } = item;
+    overlay.hidden = false;
+    overlay.style.left = `${position.x}px`;
+    overlay.style.top = `${position.y}px`;
+    overlay.style.setProperty("--node-size", `${size}px`);
+    overlay.classList.toggle("is-selected", node.selected());
+    overlay.classList.toggle("is-dim", node.hasClass("dim"));
+    overlay.classList.toggle("is-dense", state.graphMode === "dense");
+    overlay.classList.toggle("is-label-hidden", state.graphMode === "dense" && !readableLabelIds.has(id));
+  });
+}
+
+function focusNeighborhoodIds(focusId) {
+  const ids = new Set(state.importantLabelIds);
+  if (!state.cy || !focusId) return ids;
+  const focus = state.cy.getElementById(focusId);
+  if (!focus || focus.empty()) return ids;
+  focus.closedNeighborhood("node").forEach((node) => ids.add(node.id()));
+  return ids;
+}
+
+function readableDenseLabelIds(items, candidateIds, focusId) {
+  if (state.graphMode !== "dense") {
+    return new Set(items.map((item) => item.id));
+  }
+  const kept = [];
+  const labels = new Set();
+  const sorted = [...items]
+    .filter((item) => candidateIds.has(item.id))
+    .sort((a, b) => labelPriority(b, focusId) - labelPriority(a, focusId));
+
+  sorted.forEach((item) => {
+    const forced = item.id === state.selectedId || item.id === state.hoveredId;
+    const box = {
+      x1: item.position.x - 58,
+      x2: item.position.x + 58,
+      y1: item.position.y + item.size / 2 + 6,
+      y2: item.position.y + item.size / 2 + 34,
+    };
+    if (!forced && kept.some((other) => rectsOverlap(box, other, 8))) return;
+    kept.push(box);
+    labels.add(item.id);
+  });
+  return labels;
+}
+
+function labelPriority(item, focusId) {
+  if (item.id === state.selectedId) return 10000;
+  if (item.id === state.hoveredId) return 9000;
+  if (item.id === focusId) return 8000;
+  const degree = Number(item.node.data("degree")) || 0;
+  return (state.importantLabelIds.has(item.id) ? 1000 : 0) + degree;
+}
+
+function rectsOverlap(a, b, padding) {
+  return !(
+    a.x2 + padding < b.x1
+    || a.x1 - padding > b.x2
+    || a.y2 + padding < b.y1
+    || a.y1 - padding > b.y2
+  );
 }
 
 function openDrawer(kind) {
